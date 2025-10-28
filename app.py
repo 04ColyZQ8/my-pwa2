@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import requests
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
-BLYNK_TOKEN = "LcIEIHmUOMbwC8xi-3Au3CQM7lNajKR9"  # Your token here ✅
+# Enable CORS
+CORS(app)
+
+BLYNK_TOKEN = "LcIEIHmUOMbwC8xi-3Au3CQM7lNajKR9"
 
 def blynk_update(pin, value):
     url = f"https://blynk.cloud/external/api/update?token={BLYNK_TOKEN}&pin={pin}&value={value}"
