@@ -1,0 +1,57 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #111;
+    color: #fff;
+    text-align: center;
+    padding-bottom: 40px;
+}
+
+.header {
+    background: #222;
+    padding: 20px 10px;
+    border-bottom: 1px solid #333;
+}
+
+.vehicle-status {
+    font-size: 0.9rem;
+    color: #bbb;
+}
+
+.controls h3 {
+    margin: 20px 0;
+    font-size: 1.3rem;
+    color: #fff;
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    padding: 0 15px;
+}
+
+button {
+    background: #000;
+    border: 2px solid #444;
+    color: white;
+    padding: 18px;
+    border-radius: 15px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #333;
+    border-color: #666;
+}
+
+button:active {
+    background: #555;
+}
