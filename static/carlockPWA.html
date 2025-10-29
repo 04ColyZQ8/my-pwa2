@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Control</title>
+<link rel="stylesheet" href="carlockPWA.css">
+</head>
+<body>
+<header class="header">
+    <h2>2015 Trax</h2>
+    <p class="vehicle-status">Fuel: 25% · 140 km</p>
+</header>
+
+<section class="controls">
+    <h3>Controls</h3>
+    <div class="button-grid">
+        <button onclick="sendCmd('unlock')">🔓 Unlock</button>
+        <button onclick="sendCmd('lock')">🔒 Lock</button>
+    </div>
+</section>
+
+<button onclick="logout()" style="margin-top:20px;">Logout</button>
+
+<script src="carlockPWA.js"></script>
+</body>
+</html>
