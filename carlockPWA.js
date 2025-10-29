@@ -1,5 +1,27 @@
-const API_BASE = "https://carlock-backend-od8a.onrender.com"; // Render backend URL
+const API_BASE = "https://carlock-backend-od8a.onrender.com"; // backend URL
 
+// -------------------------
+// Warmup backend on page load
+// -------------------------
+window.addEventListener('load', async () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+        try {
+            await fetch(`${API_BASE}/api/warmup`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            console.log("Backend warmed up!");
+        } catch (err) {
+            console.error("Warmup failed:", err);
+        }
+    } else {
+        window.location.href = "index.html";
+    }
+});
+
+// -------------------------
+// Send commands to backend
+// -------------------------
 async function sendCmd(action) {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -8,7 +30,7 @@ async function sendCmd(action) {
         return;
     }
 
-    // Map frontend action to backend endpoint
+    // Map frontend actions to backend endpoints
     let apiAction = action;
     switch (action) {
         case 'soundAlarm': apiAction = 'sound'; break;
