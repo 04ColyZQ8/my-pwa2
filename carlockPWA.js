@@ -25,7 +25,7 @@ window.addEventListener('load', async () => {
 async function sendCmd(action) {
     const token = localStorage.getItem("token");
     if (!token) {
-        alert("Not logged in!");
+        //alert("Not logged in!");
         window.location.href = "index.html";
         return;
     }
@@ -46,10 +46,10 @@ async function sendCmd(action) {
             headers: { "Authorization": "Bearer " + token }
         });
         const data = await res.json();
-        console.log(action, data);
-        alert(`${action} command sent!`);
+        //console.log(action, data);
+        //alert(`${action} command sent!`);
     } catch (err) {
-        console.error(action, "failed:", err);
-        alert("Failed to send command. Check backend.");
+        //console.error(action, "failed:", err);
+        //alert("Failed to send command. Check backend.");
     }
 }
