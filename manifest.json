@@ -1,7 +1,7 @@
 {
   "name": "Car Lock Control",
   "short_name": "CarLock",
-  "start_url": "./carlockPWA.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
