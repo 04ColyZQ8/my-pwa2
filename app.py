@@ -58,7 +58,7 @@ def login():
     return jsonify({'message': 'Invalid credentials'}), 401
 
 # -----------------------
-# PWA / Control Endpoints
+# Control Endpoints
 # -----------------------
 @app.route('/api/unlock', methods=['POST'])
 @token_required
@@ -102,4 +102,30 @@ def remote_start():
     res = blynk_update("V5", 1)
     return jsonify({"status": "sent", "response": res.text if res else "dummy response"})
 
-@app.route('/api/status',
+@app.route('/api/status', methods=['GET'])
+@token_required
+def status():
+    url = f"https://blynk.cloud/external/api/get?token={BLYNK_TOKEN}&pin=V0"
+    try:
+        res = requests.get(url, timeout=2)
+        return jsonify(res.json())
+    except:
+        return jsonify({"V0": 0, "V4": 0, "V1": 0, "V2": 0, "V3": 0, "V5": 0})
+
+# -----------------------
+# Warmup Endpoint
+# -----------------------
+@app.route('/api/warmup', methods=['GET'])
+@token_required
+def warmup():
+    """Ping all pins to avoid first-click delay"""
+    pins = ["V0", "V1", "V2", "V3", "V4", "V5"]
+    for pin in pins:
+        blynk_update(pin, 0)
+    return jsonify({"status": "warmed up"})
+
+# -----------------------
+# Run Server
+# -----------------------
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080, debug=True)
