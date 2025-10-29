@@ -1,18 +1,19 @@
-async function sendCmd(action) {
-    try {
-        const token = localStorage.getItem('authToken');
-        const res = await fetch('/api/' + action, {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        const data = await res.json();
-        console.log("Command:", action, data);
-    } catch (err) {
-        console.error("Error sending command:", err);
-    }
-}
+async function login() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
 
-function logout() {
-    localStorage.removeItem('authToken');
-    window.location.href = "/";
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    window.location.href = "carlockPWA.html";
+  } else {
+    alert(data.message || "Invalid credentials");
+  }
 }
