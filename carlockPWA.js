@@ -1,11 +1,10 @@
-const API_BASE = "https://carlock-backend-od8a.onrender.com"; // backend URL
+const API_BASE = "https://carlock-backend-od8a.onrender.com";
 
 // -------------------------
 // Warmup backend on page load
 // -------------------------
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
-    // Only redirect if we're NOT on the login page
     if (!token && !window.location.href.includes("index.html")) {
         window.location.href = "index.html";
         return;
@@ -29,14 +28,12 @@ window.addEventListener('load', async () => {
 async function sendCmd(action) {
     const token = localStorage.getItem("token");
     if (!token) {
-        // Only redirect if not already on login page
         if (!window.location.href.includes("index.html")) {
             window.location.href = "index.html";
         }
         return;
     }
 
-    // Map frontend actions to backend endpoints
     let apiAction = action;
     switch (action) {
         case 'soundAlarm': apiAction = 'sound'; break;
@@ -59,7 +56,7 @@ async function sendCmd(action) {
 }
 
 // -------------------------
-// Optional: logout
+// Logout
 // -------------------------
 function logout() {
     localStorage.removeItem("token");

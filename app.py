@@ -9,10 +9,11 @@ CORS(app)
 # -----------------------
 # Config
 # -----------------------
-app.config['SECRET_KEY'] = 'supersecretkey'  # change this
+app.config['SECRET_KEY'] = 'supersecretkey'  # Keep this secret
 BLYNK_TOKEN = "LcIEIHmUOMbwC8xi-3Au3CQM7lNajKR9"
-USERNAME = "youruser"    # change as needed
-PASSWORD = "yourpass"
+
+USERNAME = "Jamie"
+PASSWORD = "trax123"
 
 # -----------------------
 # Helpers
@@ -118,7 +119,6 @@ def status():
 @app.route('/api/warmup', methods=['GET'])
 @token_required
 def warmup():
-    """Ping all pins to avoid first-click delay"""
     pins = ["V0", "V1", "V2", "V3", "V4", "V5"]
     for pin in pins:
         blynk_update(pin, 0)
