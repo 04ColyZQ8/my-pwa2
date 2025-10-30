@@ -25,6 +25,8 @@ window.addEventListener('load', async () => {
 // -------------------------
 // Send commands to backend
 // -------------------------
+const pending = {}; // track pending requests to avoid double-clicks
+
 async function sendCmd(action) {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -34,29 +36,29 @@ async function sendCmd(action) {
         return;
     }
 
-    let apiAction = action;
-    switch (action) {
-        case 'soundAlarm': apiAction = 'sound'; break;
-        case 'stopAlarm': apiAction = 'stopSound'; break;
-        case 'flashLights': apiAction = 'flash'; break;
-        case 'stopLights': apiAction = 'stopFlash'; break;
-        case 'remoteStart': apiAction = 'remoteStart'; break;
-    }
+    if (pending[action]) return; // skip if request is in progress
+    pending[action] = true;
+
+    const button = document.querySelector(`[onclick="sendCmd('${action}')"]`);
+    if (button) button.disabled = true;
 
     try {
-        const res = await fetch(`${API_BASE}/api/${apiAction}`, {
+        const res = await fetch(`${API_BASE}/api/${action}`, {
             method: "POST",
             headers: { "Authorization": "Bearer " + token }
         });
         const data = await res.json();
-        console.log(`${action} command sent:`, data);
+        console.log(`${action} sent:`, data);
     } catch (err) {
         console.error(`${action} failed:`, err);
+    } finally {
+        pending[action] = false;
+        if (button) button.disabled = false;
     }
 }
 
 // -------------------------
-// Logout
+// Optional: logout
 // -------------------------
 function logout() {
     localStorage.removeItem("token");

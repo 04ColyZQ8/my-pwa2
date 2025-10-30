@@ -9,9 +9,8 @@ CORS(app)
 # -----------------------
 # Config
 # -----------------------
-app.config['SECRET_KEY'] = 'supersecretkey'  # Keep this secret
+app.config['SECRET_KEY'] = 'supersecretkey'  # change as needed
 BLYNK_TOKEN = "LcIEIHmUOMbwC8xi-3Au3CQM7lNajKR9"
-
 USERNAME = "Jamie"
 PASSWORD = "trax123"
 
@@ -22,7 +21,7 @@ def blynk_update(pin, value):
     """Send a command to Blynk cloud"""
     url = f"https://blynk.cloud/external/api/update?token={BLYNK_TOKEN}&pin={pin}&value={value}"
     try:
-        res = requests.get(url, timeout=2)
+        res = requests.get(url, timeout=3)
         return res
     except:
         return None
@@ -59,59 +58,41 @@ def login():
     return jsonify({'message': 'Invalid credentials'}), 401
 
 # -----------------------
-# Control Endpoints
+# Control Endpoints (unique pins!)
 # -----------------------
-@app.route('/api/unlock', methods=['POST'])
+PIN_MAP = {
+    "unlock": "V0",
+    "lock": "V1",
+    "soundAlarm": "V2",
+    "stopAlarm": "V3",
+    "flashLights": "V4",
+    "stopLights": "V5",
+    "remoteStart": "V6"
+}
+
+@app.route('/api/<action>', methods=['POST'])
 @token_required
-def unlock():
-    res = blynk_update("V0", 1)
+def control(action):
+    pin = PIN_MAP.get(action)
+    if not pin:
+        return jsonify({"message": "Invalid action"}), 400
+    res = blynk_update(pin, 1)
     return jsonify({"status": "sent", "response": res.text if res else "dummy response"})
 
-@app.route('/api/lock', methods=['POST'])
-@token_required
-def lock():
-    res = blynk_update("V4", 1)
-    return jsonify({"status": "sent", "response": res.text if res else "dummy response"})
-
-@app.route('/api/sound', methods=['POST'])
-@token_required
-def sound_alarm():
-    res = blynk_update("V1", 1)
-    return jsonify({"status": "sent", "response": res.text if res else "dummy response"})
-
-@app.route('/api/stopSound', methods=['POST'])
-@token_required
-def stop_alarm():
-    res = blynk_update("V2", 1)
-    return jsonify({"status": "sent", "response": res.text if res else "dummy response"})
-
-@app.route('/api/flash', methods=['POST'])
-@token_required
-def flash_lights():
-    res = blynk_update("V3", 1)
-    return jsonify({"status": "sent", "response": res.text if res else "dummy response"})
-
-@app.route('/api/stopFlash', methods=['POST'])
-@token_required
-def stop_flash_lights():
-    res = blynk_update("V4", 1)
-    return jsonify({"status": "sent", "response": res.text if res else "dummy response"})
-
-@app.route('/api/remoteStart', methods=['POST'])
-@token_required
-def remote_start():
-    res = blynk_update("V5", 1)
-    return jsonify({"status": "sent", "response": res.text if res else "dummy response"})
-
+# -----------------------
+# Status Endpoint
+# -----------------------
 @app.route('/api/status', methods=['GET'])
 @token_required
 def status():
-    url = f"https://blynk.cloud/external/api/get?token={BLYNK_TOKEN}&pin=V0"
-    try:
-        res = requests.get(url, timeout=2)
-        return jsonify(res.json())
-    except:
-        return jsonify({"V0": 0, "V4": 0, "V1": 0, "V2": 0, "V3": 0, "V5": 0})
+    response = {}
+    for action, pin in PIN_MAP.items():
+        try:
+            res = requests.get(f"https://blynk.cloud/external/api/get?token={BLYNK_TOKEN}&pin={pin}", timeout=2)
+            response[pin] = int(res.text) if res else 0
+        except:
+            response[pin] = 0
+    return jsonify(response)
 
 # -----------------------
 # Warmup Endpoint
@@ -119,8 +100,7 @@ def status():
 @app.route('/api/warmup', methods=['GET'])
 @token_required
 def warmup():
-    pins = ["V0", "V1", "V2", "V3", "V4", "V5"]
-    for pin in pins:
+    for pin in PIN_MAP.values():
         blynk_update(pin, 0)
     return jsonify({"status": "warmed up"})
 
