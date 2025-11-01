@@ -28,6 +28,10 @@ def status():
     url = f"https://blynk.cloud/external/api/get?token={BLYNK_TOKEN}&pin=V0"
     res = requests.get(url)
     return jsonify(res.json())
+@app.route("/api/location", methods=["POST"])
+def api_location():
+    return location()
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)
