@@ -60,6 +60,10 @@ def status():
     res = requests.get(url)
     return jsonify(res.json())
 
+# -------------------------
+# ESP32-friendly location endpoint
+# -------------------------
+# No authentication needed for ESP32
 @app.route("/api/location", methods=["POST"])
 def api_location():
     return location()
