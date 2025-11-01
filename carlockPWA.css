@@ -55,9 +55,44 @@ button:hover {
 button:active {
     background: #555;
 }
-.location-section { text-align:center; margin:20px auto; }
-#locBtn { padding:10px 20px; margin-bottom:10px; }
-.map-thumb img { width:300px; height:200px; border-radius:12px; object-fit:cover; cursor:pointer; }
-.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-         background-color:rgba(0,0,0,0.8); justify-content:center; align-items:center; }
-.modal-content { max-width:90%; max-height:90%; border-radius:8px; }
+
+.location-section {
+    text-align: center;
+    margin: 20px auto;
+}
+
+#locBtn {
+    padding: 10px 20px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #222;
+    border: 2px solid #555;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.map-thumb img {
+    width: 300px;
+    height: 200px;
+    border-radius: 12px;
+    object-fit: cover;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 8px;
+}
