@@ -64,3 +64,45 @@ function logout() {
     localStorage.removeItem("token");
     window.location.href = "index.html";
 }
+async function getVehicleLocation() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Please log in first.");
+    return;
+  }
+
+  try {
+    // Ask backend for latest coords from Blynk
+    const res = await fetch(`${API_BASE}/api/geoscan`, {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const data = await res.json();
+    console.log("Geo response:", data);
+
+    if (data.location) {
+      const lat = data.location.lat;
+      const lng = data.location.lng;
+      updateMap(lat, lng);
+    } else {
+      alert("No location data available yet.");
+    }
+  } catch (err) {
+    console.error("getVehicleLocation failed:", err);
+  }
+}
+
+function updateMap(lat, lng) {
+  const url = `${API_BASE}/api/staticmap?lat=${lat}&lng=${lng}`;
+  document.getElementById("mapImg").src = url;
+  document.getElementById("mapFull").src = url;
+}
+
+function openFullMap() {
+  document.getElementById("mapModal").style.display = "flex";
+}
+
+function closeFullMap() {
+  document.getElementById("mapModal").style.display = "none";
+}
+
