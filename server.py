@@ -7,7 +7,7 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 # -------------------------
 # Blynk Configuration
 # -------------------------
-BLYNK_TOKEN = "LcIEIHmUOMbwC8xi-3Au3CQM7lNajKR9"  # Your token here ✅
+BLYNK_TOKEN = "LcIEIHmUOMbwC8xi-3Au3CQM7lNajKR9"  # Your Blynk token
 
 def blynk_update(pin, value):
     url = f"https://blynk.cloud/external/api/update?token={BLYNK_TOKEN}&pin={pin}&value={value}"
@@ -16,7 +16,7 @@ def blynk_update(pin, value):
 # -------------------------
 # Google Geolocation
 # -------------------------
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # Set this in Render dashboard
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # Set in Render environment variables
 
 def location():
     data = request.get_json()
@@ -36,6 +36,11 @@ def location():
     else:
         print("❌ Google API error:", response.text)
         return jsonify({"error": "Google API error"}), response.status_code
+
+# -------------------------
+# ESP32 Authorization
+# -------------------------
+ESP32_SECRET = os.getenv("ESP32_SECRET", "MY_SUPER_SECRET_1234567890")
 
 # -------------------------
 # Routes
@@ -61,11 +66,14 @@ def status():
     return jsonify(res.json())
 
 # -------------------------
-# ESP32-friendly location endpoint
+# ESP32-friendly location endpoint with authentication
 # -------------------------
-# No authentication needed for ESP32
 @app.route("/api/location", methods=["POST"])
 def api_location():
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header != f"Bearer {ESP32_SECRET}":
+        return jsonify({"error": "Unauthorized"}), 401
+
     return location()
 
 # -------------------------
