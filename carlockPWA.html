@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Car Remote Control</title>
 <link rel="stylesheet" href="carlockPWA.css">
@@ -20,28 +19,15 @@
   <div class="button-grid">
     <button onclick="sendCmd('unlock')">🔓<br>Unlock</button>
     <button onclick="sendCmd('lock')">🔒<br>Lock</button>
-    <button onclick="sendCmd('sound')">📢<br>Sound Alarm</button>
-    <button onclick="sendCmd('stopSound')">🔇<br>Stop Alarm</button>
-    <button onclick="sendCmd('flash')">💡<br>Flash Lights</button>
-    <button onclick="sendCmd('stopFlash')">🚫💡<br>Stop Lights</button>
+    <button onclick="sendCmd('soundAlarm')">📢<br>Sound Alarm</button>
+    <button onclick="sendCmd('stopAlarm')">🔇<br>Stop Alarm</button>
+    <button onclick="sendCmd('flashLights')">💡<br>Flash Lights</button>
+    <button onclick="sendCmd('stopLights')">🚫💡<br>Stop Lights</button>
     <button onclick="sendCmd('remoteStart')">🚗<br>Remote Start</button>
     <button onclick="logout()">🚪<br>Logout</button>
   </div>
 </section>
 
-<section class="location-section">
-  <h3>Vehicle Location</h3>
-  <button id="locBtn" onclick="getVehicleLocation()">📍 Get Current Location</button>
-
-  <div class="map-thumb" id="mapThumb" onclick="openFullMap()">
-    <img id="mapImg" src="" alt="No map yet">
-  </div>
-
-  <div id="mapModal" class="modal" onclick="closeFullMap()">
-    <img id="mapFull" class="modal-content" alt="">
-  </div>
-</section>
-
-<script src="frontend.js"></script>
+<script src="carlockPWA.js"></script>
 </body>
 </html>
