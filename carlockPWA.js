@@ -1,13 +1,8 @@
 const API_BASE = "https://carlock-backend-od8a.onrender.com";
 
-// Default placeholder image
-const DEFAULT_MAP =
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_placeholder.png/640px-World_map_placeholder.png";
-
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "index.html";
-
     loadMapFromStorage();
 });
 
@@ -24,7 +19,9 @@ async function sendCmd(action) {
     try {
         await fetch(`${API_BASE}/api/${action}`, {
             method: "POST",
-            headers: { "Authorization": "Bearer " + token }
+            headers: {
+                "Authorization": "Bearer " + token
+            }
         });
     } catch (err) {
         console.error(err);
@@ -40,7 +37,9 @@ async function getLocation() {
 
     try {
         const res = await fetch(`${API_BASE}/api/getCarLocation`, {
-            headers: { "Authorization": "Bearer " + token }
+            headers: {
+                "Authorization": "Bearer " + token
+            }
         });
 
         const data = await res.json();
@@ -50,27 +49,16 @@ async function getLocation() {
             document.getElementById("mapThumb").src = data.mapUrl;
         } else {
             console.error("Location data invalid:", data);
-
-            // fallback to placeholder
-            document.getElementById("mapThumb").src = DEFAULT_MAP;
         }
     } catch (err) {
         console.error("Failed to fetch car location:", err);
-
-        // fallback to placeholder
-        document.getElementById("mapThumb").src = DEFAULT_MAP;
     }
 }
 
 // Load last map
 function loadMapFromStorage() {
     const url = localStorage.getItem("lastMapUrl");
-
-    if (!url) {
-        document.getElementById("mapThumb").src = DEFAULT_MAP;
-        return;
-    }
-
+    if (!url) return;
     document.getElementById("mapThumb").src = url;
 }
 

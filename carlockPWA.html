@@ -1,41 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Car Remote Control</title>
-<link rel="stylesheet" href="carlockPWA.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Remote Control</title>
+    <link rel="stylesheet" href="carlockPWA.css">
 </head>
 <body>
 
 <header class="header">
-  <div>
-    <h2>2015 TRAX</h2>
-    <p class="vehicle-status">Fuel: 25% · 140 km</p>
-  </div>
+    <div>
+        <h2>2015 TRAX</h2>
+        <p class="vehicle-status">Fuel: 25% · 140 km</p>
+    </div>
 </header>
 
 <section class="controls">
-  <h3>Controls</h3>
-  <div class="button-grid">
-    <button onclick="sendCmd('unlock')">🔓<br>Unlock</button>
-    <button onclick="sendCmd('lock')">🔒<br>Lock</button>
-    <button onclick="sendCmd('soundAlarm')">📢<br>Sound Alarm</button>
-    <button onclick="sendCmd('stopAlarm')">🔇<br>Stop Alarm</button>
-    <button onclick="sendCmd('flashLights')">💡<br>Flash Lights</button>
-    <button onclick="sendCmd('stopLights')">🚫💡<br>Stop Lights</button>
-    <button onclick="sendCmd('remoteStart')">🚗<br>Remote Start</button>
-    <button onclick="getLocation()">📍<br>Get Location</button>
-    <button onclick="logout()">🚪<br>Logout</button>
-  </div>
+    <h3>Controls</h3>
 
-  <div id="mapBox">
-   <img id="mapThumb"
-     src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_placeholder.png/640px-World_map_placeholder.png"
-     alt="No location yet — press Get Location">
-  </div>
+    <div class="button-grid">
+        <button onclick="sendCmd('unlock')">🔓<br>Unlock</button>
+        <button onclick="sendCmd('lock')">🔒<br>Lock</button>
+        <button onclick="sendCmd('soundAlarm')">📢<br>Sound Alarm</button>
+        <button onclick="sendCmd('stopAlarm')">🔇<br>Stop Alarm</button>
+        <button onclick="sendCmd('flashLights')">💡<br>Flash Lights</button>
+        <button onclick="sendCmd('stopLights')">🚫💡<br>Stop Lights</button>
+        <button onclick="sendCmd('remoteStart')">🚗<br>Remote Start</button>
+        <button onclick="getLocation()">📍<br>Get Location</button>
+        <button onclick="logout()">🚪<br>Logout</button>
+    </div>
 
+    <div id="mapBox">
+        <img id="mapThumb" src="" alt="location loading...">
+    </div>
 </section>
 
 <script src="carlockPWA.js"></script>
+
 </body>
 </html>
