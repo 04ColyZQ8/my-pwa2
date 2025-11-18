@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import requests, jwt, datetime, os, json
+import requests, jwt, datetime, os, json, time
 from functools import wraps
 
 app = Flask(__name__, static_folder='.', static_url_path='')
@@ -23,8 +23,11 @@ PASSWORD = os.getenv("PASSWORD", "trax123")
 def blynk_update(pin, value):
     url = f"https://blynk.cloud/external/api/update?token={BLYNK_TOKEN}&pin={pin}&value={value}"
     try:
-        return requests.get(url, timeout=3)
-    except:
+        r = requests.get(url, timeout=3)
+        print(f"[DEBUG] blynk_update({pin}) -> {r.text}")
+        return r
+    except Exception as e:
+        print(f"[DEBUG] blynk_update({pin}) error: {e}")
         return None
 
 def blynk_get(pin):
@@ -32,23 +35,30 @@ def blynk_get(pin):
     try:
         r = requests.get(url, timeout=5)
         r.raise_for_status()
-        return r.json()
-    except:
+        text = r.text.strip()
+        if not text or text in ["0", "[]", "{}"]:
+            return None
+        return json.loads(text)
+    except Exception as e:
+        print(f"[DEBUG] blynk_get({pin}) error: {e}, response: {r.text if 'r' in locals() else ''}")
         return None
 
 def google_locate(json_payload):
     url = f"https://www.googleapis.com/geolocation/v1/geolocate?key={GOOGLE_API_KEY}"
-    r = requests.post(url, json=json_payload)
-    if r.status_code != 200:
+    try:
+        r = requests.post(url, json=json_payload, timeout=10)
+        r.raise_for_status()
+        d = r.json()
+        loc = d.get("location", {})
+        return {
+            "lat": loc.get("lat"),
+            "lng": loc.get("lng"),
+            "accuracy": d.get("accuracy", 0),
+            "mapUrl": f"https://www.google.com/maps?q={loc.get('lat')},{loc.get('lng')}&z=18"
+        }
+    except Exception as e:
+        print(f"[DEBUG] google_locate error: {e}, response: {r.text if 'r' in locals() else ''}")
         return None
-    d = r.json()
-    loc = d.get("location", {})
-    return {
-        "lat": loc.get("lat"),
-        "lng": loc.get("lng"),
-        "accuracy": d.get("accuracy", 0),
-        "mapUrl": f"https://www.google.com/maps?q={loc.get('lat')},{loc.get('lng')}&z=18"
-    }
 
 # -----------------------
 # JWT Auth
@@ -62,7 +72,8 @@ def token_required(f):
         try:
             token = token.replace("Bearer ", "")
             jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-        except:
+        except Exception as e:
+            print(f"[DEBUG] token decode error: {e}")
             return jsonify({'message': 'Invalid token'}), 401
         return f(*args, **kwargs)
     return decorated
@@ -104,21 +115,34 @@ def control(action):
     pin = PIN_MAP.get(action)
     if not pin:
         return jsonify({"message": "Invalid action"}), 400
+
     res = blynk_update(pin, 1)
     return jsonify({"status": "sent", "response": res.text if res else "no response"})
 
-# NEW: Fetch location via Blynk V8
+# NEW: Trigger V7 -> wait -> fetch V8 -> Google Geolocation
 @app.route('/api/getCarLocation', methods=['GET'])
 @token_required
 def get_car_location():
-    scan_json = blynk_get(8)  # V8
-    if not scan_json:
-        return jsonify({"error": "No scan data"}), 400
+    print("[DEBUG] Triggering V7 scan")
+    # Trigger ESP32 scan
+    blynk_update(7, 1)
 
+    # Wait for ESP32 to populate V8
+    for i in range(10):
+        print(f"[DEBUG] Waiting for V8 data... attempt {i+1}")
+        scan_json = blynk_get(8)  # V8
+        if scan_json:
+            break
+        time.sleep(1)
+    else:
+        return jsonify({"error": "No scan data from V8"}), 400
+
+    print(f"[DEBUG] V8 scan JSON: {scan_json}")
     loc = google_locate(scan_json)
     if not loc:
         return jsonify({"error": "Google failed"}), 500
 
+    print(f"[DEBUG] Geolocation result: {loc}")
     return jsonify(loc)
 
 # Warmup
