@@ -115,32 +115,36 @@ def control(action):
     pin = PIN_MAP.get(action)
     if not pin:
         return jsonify({"message": "Invalid action"}), 400
-
     res = blynk_update(pin, 1)
     return jsonify({"status": "sent", "response": res.text if res else "no response"})
 
-# NEW: Trigger V7 -> wait -> fetch V8 -> Google Geolocation
+# -----------------------
+# Get car location (V7 -> V8 -> Google)
+# -----------------------
 @app.route('/api/getCarLocation', methods=['GET'])
 @token_required
 def get_car_location():
     print("[DEBUG] Triggering V7 scan")
-    # Trigger ESP32 scan
+    # Pulse V7 to trigger ESP32
     blynk_update(7, 1)
+    time.sleep(0.2)
+    blynk_update(7, 0)
 
     # Wait for ESP32 to populate V8
-    for i in range(10):
+    scan_json = None
+    for i in range(15):
         print(f"[DEBUG] Waiting for V8 data... attempt {i+1}")
         scan_json = blynk_get(8)  # V8
+        print(f"[DEBUG] V8 value: {scan_json}")
         if scan_json:
             break
         time.sleep(1)
     else:
         return jsonify({"error": "No scan data from V8"}), 400
 
-    print(f"[DEBUG] V8 scan JSON: {scan_json}")
     loc = google_locate(scan_json)
     if not loc:
-        return jsonify({"error": "Google failed"}), 500
+        return jsonify({"error": "Google geolocation failed"}), 500
 
     print(f"[DEBUG] Geolocation result: {loc}")
     return jsonify(loc)

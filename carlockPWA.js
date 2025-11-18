@@ -29,23 +29,28 @@ async function sendCmd(action) {
     }
 }
 
-// NEW: Get location
+// Get car location
 async function getLocation() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const res = await fetch(`${API_BASE}/api/getCarLocation`, {
-        headers: { "Authorization": "Bearer " + token }
-    });
+    try {
+        const res = await fetch(`${API_BASE}/api/getCarLocation`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (data.lat) {
-        const mapUrl = data.mapUrl;
-        localStorage.setItem("lastMapUrl", mapUrl);
-        document.getElementById("mapThumb").src =
-            `https://maps.googleapis.com/maps/api/staticmap?center=${data.lat},${data.lng}&zoom=18&size=400x400&key=${data.api}`;
-        loadMapFromStorage();
+        if (data.lat && data.lng) {
+            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${data.lat},${data.lng}&zoom=18&size=400x400&markers=color:red%7C${data.lat},${data.lng}&key=${GOOGLE_API_KEY}`;
+            
+            localStorage.setItem("lastMapUrl", mapUrl);
+            document.getElementById("mapThumb").src = mapUrl;
+        } else {
+            console.error("Location data invalid:", data);
+        }
+    } catch (err) {
+        console.error("Failed to fetch car location:", err);
     }
 }
 
@@ -54,10 +59,7 @@ function loadMapFromStorage() {
     const url = localStorage.getItem("lastMapUrl");
     if (!url) return;
 
-    document.getElementById("mapThumb").src =
-        url.replace("https://www.google.com/maps?q=", 
-                    "https://maps.googleapis.com/maps/api/staticmap?center=")
-           + `&zoom=18&size=400x400`;
+    document.getElementById("mapThumb").src = url;
 }
 
 // Clicking thumbnail → open full screen
