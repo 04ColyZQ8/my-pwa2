@@ -21,6 +21,9 @@ PASSWORD = os.getenv("PASSWORD", "trax123")
 # Helpers
 # -----------------------
 def blynk_update(pin, value):
+    # Convert numeric pin to string
+    if isinstance(pin, int):
+        pin = f"V{pin}"
     url = f"https://blynk.cloud/external/api/update?token={BLYNK_TOKEN}&pin={pin}&value={value}"
     try:
         r = requests.get(url, timeout=3)
@@ -125,16 +128,17 @@ def control(action):
 @token_required
 def get_car_location():
     print("[DEBUG] Triggering V7 scan")
-    # Pulse V7 to trigger ESP32
-    blynk_update(7, 1)
+    
+    # Pulse V7 just like other buttons
+    blynk_update("V7", 1)
     time.sleep(0.2)
-    blynk_update(7, 0)
+    blynk_update("V7", 0)
 
     # Wait for ESP32 to populate V8
     scan_json = None
     for i in range(15):
         print(f"[DEBUG] Waiting for V8 data... attempt {i+1}")
-        scan_json = blynk_get(8)  # V8
+        scan_json = blynk_get(8)  # V8 numeric
         print(f"[DEBUG] V8 value: {scan_json}")
         if scan_json:
             break
