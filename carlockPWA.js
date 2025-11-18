@@ -1,5 +1,5 @@
 const API_BASE = "https://carlock-backend-od8a.onrender.com";
-const GOOGLE_API_KEY = "AIzaSyCn-m7Xmg6MdzUW_tkceZG_m1O3CNhibWs"; // replace with your key
+
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "index.html";
@@ -41,11 +41,9 @@ async function getLocation() {
 
         const data = await res.json();
 
-        if (data.lat && data.lng) {
-            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${data.lat},${data.lng}&zoom=18&size=400x400&markers=color:red%7C${data.lat},${data.lng}&key=${GOOGLE_API_KEY}`;
-            
-            localStorage.setItem("lastMapUrl", mapUrl);
-            document.getElementById("mapThumb").src = mapUrl;
+        if (data.mapUrl) {
+            localStorage.setItem("lastMapUrl", data.mapUrl);
+            document.getElementById("mapThumb").src = data.mapUrl;
         } else {
             console.error("Location data invalid:", data);
         }
