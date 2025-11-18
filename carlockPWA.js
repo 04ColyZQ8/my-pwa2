@@ -1,5 +1,9 @@
 const API_BASE = "https://carlock-backend-od8a.onrender.com";
 
+// Default placeholder image
+const DEFAULT_MAP =
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_placeholder.png/640px-World_map_placeholder.png";
+
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "index.html";
@@ -46,16 +50,26 @@ async function getLocation() {
             document.getElementById("mapThumb").src = data.mapUrl;
         } else {
             console.error("Location data invalid:", data);
+
+            // fallback to placeholder
+            document.getElementById("mapThumb").src = DEFAULT_MAP;
         }
     } catch (err) {
         console.error("Failed to fetch car location:", err);
+
+        // fallback to placeholder
+        document.getElementById("mapThumb").src = DEFAULT_MAP;
     }
 }
 
 // Load last map
 function loadMapFromStorage() {
     const url = localStorage.getItem("lastMapUrl");
-    if (!url) return;
+
+    if (!url) {
+        document.getElementById("mapThumb").src = DEFAULT_MAP;
+        return;
+    }
 
     document.getElementById("mapThumb").src = url;
 }
