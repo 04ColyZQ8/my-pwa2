@@ -55,3 +55,15 @@ button:hover {
 button:active {
     background: #555;
 }
+#mapBox {
+    margin-top: 25px;
+    padding: 10px;
+}
+
+#mapThumb {
+    width: 90%;
+    border-radius: 12px;
+    border: 2px solid #444;
+    cursor: pointer;
+}
+

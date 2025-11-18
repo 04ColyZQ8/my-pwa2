@@ -1,65 +1,71 @@
 const API_BASE = "https://carlock-backend-od8a.onrender.com";
 
-// -------------------------
-// Warmup backend on page load
-// -------------------------
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
-    if (!token && !window.location.href.includes("index.html")) {
-        window.location.href = "index.html";
-        return;
-    }
+    if (!token) window.location.href = "index.html";
 
-    if (token) {
-        try {
-            await fetch(`${API_BASE}/api/warmup`, {
-                headers: { "Authorization": "Bearer " + token }
-            });
-            console.log("Backend warmed up!");
-        } catch (err) {
-            console.error("Warmup failed:", err);
-        }
-    }
+    loadMapFromStorage();
 });
 
-// -------------------------
-// Send commands to backend
-// -------------------------
-const pending = {}; // track pending requests to avoid double-clicks
+// Send commands
+const pending = {};
 
 async function sendCmd(action) {
     const token = localStorage.getItem("token");
-    if (!token) {
-        if (!window.location.href.includes("index.html")) {
-            window.location.href = "index.html";
-        }
-        return;
-    }
+    if (!token) return window.location.href = "index.html";
 
-    if (pending[action]) return; // skip if request is in progress
+    if (pending[action]) return;
     pending[action] = true;
 
-    const button = document.querySelector(`[onclick="sendCmd('${action}')"]`);
-    if (button) button.disabled = true;
-
     try {
-        const res = await fetch(`${API_BASE}/api/${action}`, {
+        await fetch(`${API_BASE}/api/${action}`, {
             method: "POST",
             headers: { "Authorization": "Bearer " + token }
         });
-        const data = await res.json();
-        console.log(`${action} sent:`, data);
     } catch (err) {
-        console.error(`${action} failed:`, err);
+        console.error(err);
     } finally {
         pending[action] = false;
-        if (button) button.disabled = false;
     }
 }
 
-// -------------------------
-// Optional: logout
-// -------------------------
+// NEW: Get location
+async function getLocation() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const res = await fetch(`${API_BASE}/api/getCarLocation`, {
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    const data = await res.json();
+
+    if (data.lat) {
+        const mapUrl = data.mapUrl;
+        localStorage.setItem("lastMapUrl", mapUrl);
+        document.getElementById("mapThumb").src =
+            `https://maps.googleapis.com/maps/api/staticmap?center=${data.lat},${data.lng}&zoom=18&size=400x400&key=${data.api}`;
+        loadMapFromStorage();
+    }
+}
+
+// Load last map
+function loadMapFromStorage() {
+    const url = localStorage.getItem("lastMapUrl");
+    if (!url) return;
+
+    document.getElementById("mapThumb").src =
+        url.replace("https://www.google.com/maps?q=", 
+                    "https://maps.googleapis.com/maps/api/staticmap?center=")
+           + `&zoom=18&size=400x400`;
+}
+
+// Clicking thumbnail → open full screen
+document.getElementById("mapThumb").onclick = () => {
+    const url = localStorage.getItem("lastMapUrl");
+    if (url) window.open(url, "_blank");
+};
+
 function logout() {
     localStorage.removeItem("token");
     window.location.href = "index.html";
