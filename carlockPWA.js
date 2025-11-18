@@ -1,5 +1,5 @@
 const API_BASE = "https://carlock-backend-od8a.onrender.com";
-
+const GOOGLE_API_KEY = "AIzaSyCn-m7Xmg6MdzUW_tkceZG_m1O3CNhibWs"; // replace with your key
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "index.html";
