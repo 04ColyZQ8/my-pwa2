@@ -55,12 +55,24 @@ async function getLocation() {
 }
 
 // Load last map
+//function loadMapFromStorage() {
+    //const url = localStorage.getItem("lastMapUrl");
+   // if (!url) return;
+
+    //document.getElementById("mapThumb").src = url;
+//}
 function loadMapFromStorage() {
     const url = localStorage.getItem("lastMapUrl");
-    if (!url) return;
+
+    if (!url) {
+        document.getElementById("mapThumb").src =
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Map_pin_icon.svg/512px-Map_pin_icon.svg.png";
+        return;
+    }
 
     document.getElementById("mapThumb").src = url;
 }
+
 
 // Clicking thumbnail → open full screen
 document.getElementById("mapThumb").onclick = () => {
