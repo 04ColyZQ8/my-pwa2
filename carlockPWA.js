@@ -1,8 +1,9 @@
 const API_BASE = "https://carlock-backend-od8a.onrender.com";
-
+const GOOGLE_API_KEY = "AIzaSyCn-m7Xmg6MdzUW_tkceZG_m1O3CNhibWs"; // replace with your key
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "index.html";
+
     loadMapFromStorage();
 });
 
@@ -19,9 +20,7 @@ async function sendCmd(action) {
     try {
         await fetch(`${API_BASE}/api/${action}`, {
             method: "POST",
-            headers: {
-                "Authorization": "Bearer " + token
-            }
+            headers: { "Authorization": "Bearer " + token }
         });
     } catch (err) {
         console.error(err);
@@ -37,16 +36,16 @@ async function getLocation() {
 
     try {
         const res = await fetch(`${API_BASE}/api/getCarLocation`, {
-            headers: {
-                "Authorization": "Bearer " + token
-            }
+            headers: { "Authorization": "Bearer " + token }
         });
 
         const data = await res.json();
 
-        if (data.mapUrl) {
-            localStorage.setItem("lastMapUrl", data.mapUrl);
-            document.getElementById("mapThumb").src = data.mapUrl;
+        if (data.lat && data.lng) {
+            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${data.lat},${data.lng}&zoom=18&size=400x400&markers=color:red%7C${data.lat},${data.lng}&key=${GOOGLE_API_KEY}`;
+            
+            localStorage.setItem("lastMapUrl", mapUrl);
+            document.getElementById("mapThumb").src = mapUrl;
         } else {
             console.error("Location data invalid:", data);
         }
@@ -59,6 +58,7 @@ async function getLocation() {
 function loadMapFromStorage() {
     const url = localStorage.getItem("lastMapUrl");
     if (!url) return;
+
     document.getElementById("mapThumb").src = url;
 }
 
