@@ -66,7 +66,7 @@ function loadMapFromStorage() {
 
     if (!url) {
         document.getElementById("mapThumb").src =
-            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Map_pin_icon.svg/512px-Map_pin_icon.svg.png";
+            "https://live.staticflickr.com/3633/3530746815_df2d405411_b.jpg";
         return;
     }
 
