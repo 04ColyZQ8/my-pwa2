@@ -53,11 +53,17 @@ def google_locate(json_payload):
         r.raise_for_status()
         d = r.json()
         loc = d.get("location", {})
+        #return {
+         #   "lat": loc.get("lat"),
+          #  "lng": loc.get("lng"),
+           # "accuracy": d.get("accuracy", 0),
+            #"mapUrl": f"https://www.google.com/maps?q={loc.get('lat')},{loc.get('lng')}&z=18"
+        #}
         return {
             "lat": loc.get("lat"),
             "lng": loc.get("lng"),
             "accuracy": d.get("accuracy", 0),
-            "mapUrl": f"https://www.google.com/maps?q={loc.get('lat')},{loc.get('lng')}&z=18"
+            "mapUrl": f"https://maps.googleapis.com/maps/api/staticmap?center={loc.get('lat')},{loc.get('lng')}&zoom=18&size=400x400&markers=color:red%7C{loc.get('lat')},{loc.get('lng')}&key={GOOGLE_API_KEY}"
         }
     except Exception as e:
         print(f"[DEBUG] google_locate error: {e}, response: {r.text if 'r' in locals() else ''}")
