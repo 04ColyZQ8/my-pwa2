@@ -9,13 +9,14 @@ CORS(app)
 # -----------------------
 # Config
 # -----------------------
-app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET", "supersecretkey")
-BLYNK_TOKEN = os.getenv("BLYNK_TOKEN", "LcIEIHmUOMbwC8xi-3Au3CQM7lNajKR9")
-ESP32_SECRET = os.getenv("ESP32_SECRET", "MY_SUPER_SECRET_1234567890")
+app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET")
+
+BLYNK_TOKEN = os.getenv("BLYNK_TOKEN")
+ESP32_SECRET = os.getenv("ESP32_SECRET")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-USERNAME = os.getenv("USERNAME", "Jamie")
-PASSWORD = os.getenv("PASSWORD", "trax123")
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
 
 # -----------------------
 # Helpers
