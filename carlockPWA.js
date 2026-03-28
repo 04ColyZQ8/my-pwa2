@@ -86,8 +86,9 @@ function loadMapFromStorage() {
     const url = localStorage.getItem("lastMapUrl");
 
     if (!url) {
-        document.getElementById("mapThumb").src =
-            "https://live.staticflickr.com/3633/3530746815_df2d405411_b.jpg";
+        // document.getElementById("mapThumb").src =
+        //     "https://live.staticflickr.com/3633/3530746815_df2d405411_b.jpg";
+        document.getElementById("mapThumb").src = "fallback.png";
         return;
     }
 
