@@ -2,11 +2,14 @@ const API_BASE = "https://carlock-backend-od8a.onrender.com";
 
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
-    if (!token) window.location.href = "index.html";
+    if (!token) {
+        window.location.href = "index.html";
+        return;
+    }
 
     loadMapFromStorage();
     updateStatus();
-    setInterval(updateStatus, 60000); // 1 min refresh
+    setInterval(updateStatus, 60000);
 });
 
 const pending = {};
@@ -31,14 +34,23 @@ async function sendCmd(action) {
 }
 
 async function updateStatus() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     try {
-        const res = await fetch(`${API_BASE}/api/status`);
+        const res = await fetch(`${API_BASE}/api/status`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
         const data = await res.json();
+        if (!res.ok) {
+            console.error("Status fetch failed:", data);
+            return;
+        }
 
-        updateLTE(data.rssi);
-        updateIndicator("netStatus", data.net);
-        updateIndicator("dataStatus", data.data);
-
+        updateLTE(Number(data.rssi || 0));
+        updateIndicator("netStatus", Number(data.net || 0));
+        updateIndicator("dataStatus", Number(data.data || 0));
     } catch (e) {
         console.error("Status error", e);
     }
@@ -69,15 +81,23 @@ async function getLocation() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const res = await fetch(`${API_BASE}/api/getCarLocation`, {
-        headers: { "Authorization": "Bearer " + token }
-    });
+    try {
+        const res = await fetch(`${API_BASE}/api/getCarLocation`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (data.mapUrl) {
-        localStorage.setItem("lastMapUrl", data.mapUrl);
-        document.getElementById("mapThumb").src = data.mapUrl;
+        if (data.mapUrl) {
+            localStorage.setItem("lastMapUrl", data.mapUrl);
+            document.getElementById("mapThumb").src = data.mapUrl;
+        } else {
+            console.error("Location data invalid:", data);
+            document.getElementById("mapThumb").src = "fallback.png";
+        }
+    } catch (err) {
+        console.error("Failed to fetch car location:", err);
+        document.getElementById("mapThumb").src = "fallback.png";
     }
 }
 

@@ -55,6 +55,7 @@ button:hover {
 button:active {
     background: #555;
 }
+
 #mapBox {
     margin-top: 25px;
     padding: 10px;
@@ -66,27 +67,36 @@ button:active {
     border: 2px solid #444;
     cursor: pointer;
 }
+
 .lte-box {
-    margin-top: 20px;
+    margin: 20px 15px 0;
     padding: 15px;
     border: 2px solid #444;
     border-radius: 12px;
+    background: #1a1a1a;
 }
 
 .bars {
     display: flex;
     justify-content: center;
+    align-items: flex-end;
     gap: 4px;
     margin: 10px 0;
+    min-height: 24px;
 }
 
 .bar {
     width: 10px;
-    height: 20px;
     background: limegreen;
     opacity: 0.2;
     border-radius: 2px;
 }
+
+.bar:nth-child(1) { height: 8px; }
+.bar:nth-child(2) { height: 11px; }
+.bar:nth-child(3) { height: 14px; }
+.bar:nth-child(4) { height: 17px; }
+.bar:nth-child(5) { height: 20px; }
 
 .indicators {
     display: flex;
@@ -103,4 +113,3 @@ button:active {
     background: red;
     margin-right: 5px;
 }
-
