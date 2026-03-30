@@ -27,6 +27,24 @@
     <button onclick="getLocation()">📍<br>Get Location</button>
     <button onclick="logout()">🚪<br>Logout</button>
   </div>
+  <div class="lte-box">
+  <h3>LTE Status</h3>
+
+  <div class="bars">
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+  </div>
+
+  <p id="rssiText">RSSI: --</p>
+
+  <div class="indicators">
+    <div><span id="netStatus" class="dot"></span>Network</div>
+    <div><span id="dataStatus" class="dot"></span>Data</div>
+  </div>
+</div>
 
   <div id="mapBox">
     <img id="mapThumb" src="" alt="location loading...">

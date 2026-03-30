@@ -1,13 +1,14 @@
 const API_BASE = "https://carlock-backend-od8a.onrender.com";
-//const GOOGLE_API_KEY = "TEST"; // replace with your key
+
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "index.html";
 
     loadMapFromStorage();
+    updateStatus();
+    setInterval(updateStatus, 60000); // 1 min refresh
 });
 
-// Send commands
 const pending = {};
 
 async function sendCmd(action) {
@@ -29,74 +30,62 @@ async function sendCmd(action) {
     }
 }
 
-// Get car location
-// async function getLocation() {
-//     const token = localStorage.getItem("token");
-//     if (!token) return;
+async function updateStatus() {
+    try {
+        const res = await fetch(`${API_BASE}/api/status`);
+        const data = await res.json();
 
-//     try {
-//         const res = await fetch(`${API_BASE}/api/getCarLocation`, {
-//             headers: { "Authorization": "Bearer " + token }
-//         });
+        updateLTE(data.rssi);
+        updateIndicator("netStatus", data.net);
+        updateIndicator("dataStatus", data.data);
 
-//         const data = await res.json();
+    } catch (e) {
+        console.error("Status error", e);
+    }
+}
 
-//         if (data.lat && data.lng) {
-//             const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${data.lat},${data.lng}&zoom=18&size=400x400&markers=color:red%7C${data.lat},${data.lng}&key=${GOOGLE_API_KEY}`;
-            
-//             localStorage.setItem("lastMapUrl", mapUrl);
-//             document.getElementById("mapThumb").src = mapUrl;
-//         } else {
-//             console.error("Location data invalid:", data);
-//         }
-//     } catch (err) {
-//         console.error("Failed to fetch car location:", err);
-//     }
-// }
+function updateLTE(rssi) {
+    document.getElementById("rssiText").innerText = `RSSI: ${rssi}`;
+
+    let bars = 0;
+    if (rssi >= 25) bars = 5;
+    else if (rssi >= 20) bars = 4;
+    else if (rssi >= 15) bars = 3;
+    else if (rssi >= 10) bars = 2;
+    else if (rssi >= 2) bars = 1;
+
+    const barEls = document.querySelectorAll(".bar");
+    barEls.forEach((b, i) => {
+        b.style.opacity = i < bars ? 1 : 0.2;
+    });
+}
+
+function updateIndicator(id, val) {
+    const el = document.getElementById(id);
+    el.style.background = val ? "limegreen" : "red";
+}
+
 async function getLocation() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    try {
-        const res = await fetch(`${API_BASE}/api/getCarLocation`, {
-            headers: { "Authorization": "Bearer " + token }
-        });
+    const res = await fetch(`${API_BASE}/api/getCarLocation`, {
+        headers: { "Authorization": "Bearer " + token }
+    });
 
-        const data = await res.json();
+    const data = await res.json();
 
-        if (data.mapUrl) {
-            localStorage.setItem("lastMapUrl", data.mapUrl);
-            document.getElementById("mapThumb").src = data.mapUrl;
-        } else {
-            console.error("Location data invalid:", data);
-        }
-    } catch (err) {
-        console.error("Failed to fetch car location:", err);
+    if (data.mapUrl) {
+        localStorage.setItem("lastMapUrl", data.mapUrl);
+        document.getElementById("mapThumb").src = data.mapUrl;
     }
 }
 
-// Load last map
-//function loadMapFromStorage() {
-    //const url = localStorage.getItem("lastMapUrl");
-   // if (!url) return;
-
-    //document.getElementById("mapThumb").src = url;
-//}
 function loadMapFromStorage() {
     const url = localStorage.getItem("lastMapUrl");
-
-    if (!url) {
-        // document.getElementById("mapThumb").src =
-        //     "https://live.staticflickr.com/3633/3530746815_df2d405411_b.jpg";
-        document.getElementById("mapThumb").src = "fallback.png";
-        return;
-    }
-
-    document.getElementById("mapThumb").src = url;
+    document.getElementById("mapThumb").src = url || "fallback.png";
 }
 
-
-// Clicking thumbnail → open full screen
 document.getElementById("mapThumb").onclick = () => {
     const url = localStorage.getItem("lastMapUrl");
     if (url) window.open(url, "_blank");
