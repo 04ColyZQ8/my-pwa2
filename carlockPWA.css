@@ -84,7 +84,7 @@ button:active {
     width: 100%;
 
     /* 👇 increase height */
-    max-height: 600px;
+    max-height: 850px;
 
     /* 👇 show full image instead of cropping */
     object-fit: contain;
