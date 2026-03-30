@@ -8,9 +8,31 @@
 <body>
 
 <header class="header">
-  <div>
-    <h2>2015 TRAX</h2>
-    <p class="vehicle-status">Fuel: 25% · 140 km</p>
+  <div class="header-top">
+    <div class="vehicle-meta">
+      <h2>2015 TRAX</h2>
+      <p class="vehicle-status">Fuel: 25% · 140 km</p>
+    </div>
+
+    <div class="lte-box compact-lte">
+      <div class="lte-title-row">
+        <span class="lte-title">LTE</span>
+        <span id="rssiText">RSSI: --</span>
+      </div>
+
+      <div class="bars compact-bars" aria-label="LTE signal bars">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+
+      <div class="indicators compact-indicators">
+        <div><span id="netStatus" class="dot"></span>Net</div>
+        <div><span id="dataStatus" class="dot"></span>Data</div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -28,26 +50,9 @@
     <button onclick="logout()">🚪<br>Logout</button>
   </div>
 
-  <div class="lte-box">
-    <h3>LTE Status</h3>
-    <div class="bars" aria-label="LTE signal bars">
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-    </div>
-    <p id="rssiText">RSSI: --</p>
-    <div class="indicators">
-      <div><span id="netStatus" class="dot"></span>Network</div>
-      <div><span id="dataStatus" class="dot"></span>Data</div>
-    </div>
-  </div>
-
   <div id="mapBox">
     <img id="mapThumb" src="" alt="location loading...">
   </div>
-
 </section>
 
 <script src="carlockPWA.js"></script>
