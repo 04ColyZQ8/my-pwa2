@@ -51,6 +51,11 @@ async function updateStatus() {
         updateLTE(Number(data.rssi || 0));
         updateIndicator("netStatus", Number(data.net || 0));
         updateIndicator("dataStatus", Number(data.data || 0));
+        updateEngineStatus({
+            engineRunning: Number(data.engineRunning || 0),
+            engineRpm: Number(data.engineRpm || 0),
+            engineMessage: data.engineMessage || ""
+        });
     } catch (e) {
         console.error("Status error", e);
     }
@@ -114,4 +119,21 @@ document.getElementById("mapThumb").onclick = () => {
 function logout() {
     localStorage.removeItem("token");
     window.location.href = "index.html";
+}
+
+
+function updateEngineStatus(data) {
+    const rpmEl = document.getElementById("engineRpmText");
+    const runEl = document.getElementById("engineRunText");
+    const msgEl = document.getElementById("engineMsgText");
+
+    const rpm = Number(data.engineRpm || 0);
+    const running = Number(data.engineRunning || 0) === 1;
+    const message = (data.engineMessage || "").trim();
+
+    rpmEl.innerText = rpm > 0 ? `${rpm} rpm` : "0 rpm";
+    runEl.innerText = running ? "Yes" : "No";
+    runEl.classList.toggle("engine-running", running);
+    runEl.classList.toggle("engine-stopped", !running);
+    msgEl.innerText = message || "--";
 }

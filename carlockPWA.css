@@ -189,3 +189,65 @@ button:active {
         font-size: 0.92rem;
     }
 }
+
+
+.engine-panel {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 2px solid #444;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    max-width: 360px;
+}
+
+.engine-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 3px 0;
+    font-size: 0.88rem;
+}
+
+.engine-label {
+    color: #bbb;
+    flex: 0 0 auto;
+}
+
+.engine-value {
+    color: #fff;
+    font-weight: 600;
+    text-align: right;
+    min-width: 70px;
+}
+
+.engine-message-row {
+    align-items: flex-start;
+}
+
+.engine-message {
+    min-width: 0;
+    flex: 1 1 auto;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.engine-running {
+    color: #7CFF7C;
+}
+
+.engine-stopped {
+    color: #ff8a8a;
+}
+
+@media (max-width: 420px) {
+    .engine-panel {
+        max-width: 100%;
+        margin-top: 8px;
+        padding: 8px 10px;
+    }
+
+    .engine-row {
+        font-size: 0.8rem;
+    }
+}
