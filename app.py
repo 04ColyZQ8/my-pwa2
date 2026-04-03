@@ -161,7 +161,7 @@ def get_status():
     data = parse_int(blynk_get("V14"), 0)
     engine_running = parse_int(blynk_get("V24"), 0)
     engine_rpm = parse_int(blynk_get("V25"), 0)
-    engine_message = blynk_get("V26") or ""
+    engine_message = blynk_get("V26") or "Ready"
 
     return jsonify({
         "rssi": rssi,
