@@ -80,9 +80,39 @@ def parse_int(value, default=0):
             return default
         if isinstance(value, bool):
             return int(value)
-        return int(float(str(value).strip()))
+        if isinstance(value, (int, float)):
+            return int(float(value))
+
+        text = str(value).strip()
+        if not text:
+            return default
+
+        lowered = text.lower()
+        if lowered in {"true", "on", "connected", "yes"}:
+            return 1
+        if lowered in {"false", "off", "disconnected", "no"}:
+            return 0
+
+        if text.startswith("[") and text.endswith("]"):
+            parsed = _normalize_blynk_value(text)
+            return parse_int(parsed, default)
+
+        return int(float(text))
     except Exception:
         return default
+
+
+def blynk_get_int(pin, default=0, retries=2, delay_s=0.15):
+    last_value = None
+    for attempt in range(retries + 1):
+        last_value = blynk_get(pin)
+        parsed = parse_int(last_value, None)
+        if parsed is not None:
+            return parsed
+        if attempt < retries:
+            time.sleep(delay_s)
+    print(f"[DEBUG] blynk_get_int({pin}) fallback -> {default}, last_value={last_value}")
+    return default
 
 # -----------------------
 # JWT Auth
@@ -156,11 +186,20 @@ def control(action):
 @app.route('/api/status', methods=['GET'])
 @token_required
 def get_status():
-    rssi = parse_int(blynk_get("V11"), 0)
-    net = parse_int(blynk_get("V13"), 0)
-    data = parse_int(blynk_get("V14"), 0)
-    engine_running = parse_int(blynk_get("V24"), 0)
-    engine_rpm = parse_int(blynk_get("V25"), 0)
+    rssi = blynk_get_int("V11", 0)
+
+    # Primary mapping from the current ESP32 sketch.
+    net = blynk_get_int("V13", 0)
+    data = blynk_get_int("V14", 0)
+
+    # Fallback for older / misaligned dashboards so the PWA does not get stuck red.
+    if net not in (0, 1):
+        net = 1 if net else 0
+    if data not in (0, 1):
+        data = 1 if data else 0
+
+    engine_running = blynk_get_int("V24", 0)
+    engine_rpm = blynk_get_int("V25", 0)
     engine_message = blynk_get("V26") or "Ready"
 
     return jsonify({
@@ -168,7 +207,7 @@ def get_status():
         "net": 1 if net else 0,
         "data": 1 if data else 0,
         "engineRunning": 1 if engine_running else 0,
-        "engineRpm": engine_rpm,
+        "engineRpm": max(0, engine_rpm),
         "engineMessage": str(engine_message)
     })
 

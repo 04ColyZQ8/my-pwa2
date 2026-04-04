@@ -9,7 +9,7 @@ window.addEventListener('load', async () => {
 
     loadMapFromStorage();
     updateStatus();
-    setInterval(updateStatus, 60000);
+    setInterval(updateStatus, 10000);
 });
 
 const pending = {};
@@ -79,7 +79,8 @@ function updateLTE(rssi) {
 
 function updateIndicator(id, val) {
     const el = document.getElementById(id);
-    el.style.background = val ? "limegreen" : "red";
+    const normalized = Number(val) === 1 || val === true || String(val).toLowerCase() === "true";
+    el.style.background = normalized ? "limegreen" : "red";
 }
 
 
@@ -88,7 +89,7 @@ function updateEngineStatus(running, rpm, message) {
     const runningEl = document.getElementById("engineRunningText");
     const msgEl = document.getElementById("engineMessageText");
 
-    if (rpmEl) rpmEl.innerText = rpm > 0 ? String(rpm) : "--";
+    if (rpmEl) rpmEl.innerText = Number.isFinite(rpm) ? String(Math.max(0, Math.round(rpm))) : "--";
     if (msgEl) msgEl.innerText = message || "Ready";
 
     if (runningEl) {
