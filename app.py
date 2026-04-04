@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import requests, jwt, datetime, os, json, time, re
+import requests, jwt, datetime, os, json, time
 from functools import wraps
 
 app = Flask(__name__, static_folder='.', static_url_path='')
@@ -84,54 +84,6 @@ def parse_int(value, default=0):
     except Exception:
         return default
 
-def parse_blynk_int(value, default=0):
-    try:
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return int(value)
-        if isinstance(value, (int, float)):
-            return int(value)
-        if isinstance(value, list):
-            value = value[0] if value else default
-        text = str(value).strip()
-        m = re.search(r'-?\d+', text)
-        return int(m.group(0)) if m else default
-    except Exception:
-        return default
-
-def parse_blynk_bool(value, default=0):
-    try:
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return 1 if value else 0
-        if isinstance(value, (int, float)):
-            return 1 if int(value) != 0 else 0
-        if isinstance(value, list):
-            value = value[0] if value else default
-        text = str(value).strip().lower()
-        if text in ("1", "true", "on", "yes", "connected", "online"):
-            return 1
-        if text in ("0", "false", "off", "no", "disconnected", "offline", ""):
-            return 0
-        m = re.search(r'-?\d+', text)
-        if m:
-            return 1 if int(m.group(0)) != 0 else 0
-        return default
-    except Exception:
-        return default
-
-def parse_blynk_text(value, default=""):
-    try:
-        if value is None:
-            return default
-        if isinstance(value, list):
-            return str(value[0]) if value else default
-        return str(value)
-    except Exception:
-        return default
-
 # -----------------------
 # JWT Auth
 # -----------------------
@@ -204,30 +156,20 @@ def control(action):
 @app.route('/api/status', methods=['GET'])
 @token_required
 def get_status():
-    raw_rssi = blynk_get("V11")
-    raw_net = blynk_get("V13")
-    raw_data = blynk_get("V14")
-    raw_engine_running = blynk_get("V24")
-    raw_engine_rpm = blynk_get("V25")
-    raw_engine_message = blynk_get("V26")
-
-    rssi = parse_blynk_int(raw_rssi, 0)
-    net = parse_blynk_bool(raw_net, 0)
-    data = parse_blynk_bool(raw_data, 0)
-    engine_running = parse_blynk_bool(raw_engine_running, 0)
-    engine_rpm = parse_blynk_int(raw_engine_rpm, 0)
-    engine_message = parse_blynk_text(raw_engine_message, "Ready") or "Ready"
-
-    print(f"[DEBUG] status raw V11={raw_rssi!r} V13={raw_net!r} V14={raw_data!r} V24={raw_engine_running!r} V25={raw_engine_rpm!r} V26={raw_engine_message!r}")
-    print(f"[DEBUG] status parsed rssi={rssi} net={net} data={data} engineRunning={engine_running} engineRpm={engine_rpm} engineMessage={engine_message!r}")
+    rssi = parse_int(blynk_get("V11"), 0)
+    net = parse_int(blynk_get("V13"), 0)
+    data = parse_int(blynk_get("V14"), 0)
+    engine_running = parse_int(blynk_get("V24"), 0)
+    engine_rpm = parse_int(blynk_get("V25"), 0)
+    engine_message = blynk_get("V26") or "Ready"
 
     return jsonify({
         "rssi": rssi,
-        "net": net,
-        "data": data,
-        "engineRunning": engine_running,
+        "net": 1 if net else 0,
+        "data": 1 if data else 0,
+        "engineRunning": 1 if engine_running else 0,
         "engineRpm": engine_rpm,
-        "engineMessage": engine_message
+        "engineMessage": str(engine_message)
     })
 
 # -----------------------

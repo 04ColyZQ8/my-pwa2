@@ -193,61 +193,63 @@ button:active {
 
 .engine-panel {
     margin-top: 10px;
-    padding: 10px 12px;
-    border: 2px solid #444;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    max-width: 360px;
+    text-align: left;
+    display: grid;
+    gap: 6px;
+    max-width: 260px;
 }
 
-.engine-row {
+.engine-line {
+    font-size: 0.84rem;
+    color: #e7e7e7;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 3px 0;
-    font-size: 0.88rem;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 .engine-label {
-    color: #bbb;
-    flex: 0 0 auto;
+    color: #9fb3cc;
+    min-width: 58px;
+    font-weight: 700;
 }
 
-.engine-value {
+#engineRpmText,
+#engineMessageText {
     color: #fff;
-    font-weight: 600;
-    text-align: right;
-    min-width: 70px;
 }
 
-.engine-message-row {
-    align-items: flex-start;
+.engine-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
 }
 
-.engine-message {
-    min-width: 0;
-    flex: 1 1 auto;
-    white-space: normal;
-    word-break: break-word;
+.engine-pill.on {
+    background: rgba(50, 205, 50, 0.18);
+    color: #7dff7d;
+    border: 1px solid rgba(50, 205, 50, 0.45);
 }
 
-.engine-running {
-    color: #7CFF7C;
-}
-
-.engine-stopped {
-    color: #ff8a8a;
+.engine-pill.off {
+    background: rgba(255, 70, 70, 0.14);
+    color: #ff8b8b;
+    border: 1px solid rgba(255, 70, 70, 0.35);
 }
 
 @media (max-width: 420px) {
     .engine-panel {
-        max-width: 100%;
-        margin-top: 8px;
-        padding: 8px 10px;
+        max-width: 220px;
     }
 
-    .engine-row {
-        font-size: 0.8rem;
+    .engine-line {
+        font-size: 0.78rem;
+    }
+
+    .engine-label {
+        min-width: 50px;
     }
 }
