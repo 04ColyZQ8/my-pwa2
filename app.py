@@ -18,6 +18,11 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
 
+APP_OPEN_PIN = "V15"
+APP_OPEN_TIMEOUT_SECONDS = 45
+app_open_deadline = 0.0
+last_app_open_sent = None
+
 # -----------------------
 # Helpers
 # -----------------------
@@ -33,6 +38,7 @@ def blynk_update(pin, value):
         print(f"[DEBUG] blynk_update({pin}) error: {e}")
         return None
 
+
 def _normalize_blynk_value(text):
     text = (text or "").strip()
     if not text:
@@ -45,6 +51,7 @@ def _normalize_blynk_value(text):
     except Exception:
         return text
 
+
 def blynk_get(pin):
     if isinstance(pin, int):
         pin = f"V{pin}"
@@ -56,6 +63,7 @@ def blynk_get(pin):
     except Exception as e:
         print(f"[DEBUG] blynk_get({pin}) error: {e}, response: {r.text if 'r' in locals() else ''}")
         return None
+
 
 def google_locate(json_payload):
     url = f"https://www.googleapis.com/geolocation/v1/geolocate?key={GOOGLE_API_KEY}"
@@ -74,45 +82,25 @@ def google_locate(json_payload):
         print(f"[DEBUG] google_locate error: {e}, response: {r.text if 'r' in locals() else ''}")
         return None
 
+
 def parse_int(value, default=0):
     try:
         if value is None:
             return default
         if isinstance(value, bool):
             return int(value)
-        if isinstance(value, (int, float)):
-            return int(float(value))
-
-        text = str(value).strip()
-        if not text:
-            return default
-
-        lowered = text.lower()
-        if lowered in {"true", "on", "connected", "yes"}:
-            return 1
-        if lowered in {"false", "off", "disconnected", "no"}:
-            return 0
-
-        if text.startswith("[") and text.endswith("]"):
-            parsed = _normalize_blynk_value(text)
-            return parse_int(parsed, default)
-
-        return int(float(text))
+        return int(float(str(value).strip()))
     except Exception:
         return default
 
 
-def blynk_get_int(pin, default=0, retries=2, delay_s=0.15):
-    last_value = None
-    for attempt in range(retries + 1):
-        last_value = blynk_get(pin)
-        parsed = parse_int(last_value, None)
-        if parsed is not None:
-            return parsed
-        if attempt < retries:
-            time.sleep(delay_s)
-    print(f"[DEBUG] blynk_get_int({pin}) fallback -> {default}, last_value={last_value}")
-    return default
+def sync_app_open_state(force=False):
+    global app_open_deadline, last_app_open_sent
+    desired = 1 if time.time() < app_open_deadline else 0
+    if force or last_app_open_sent != desired:
+        blynk_update(APP_OPEN_PIN, desired)
+        last_app_open_sent = desired
+    return desired
 
 # -----------------------
 # JWT Auth
@@ -139,7 +127,7 @@ def token_required(f):
 def root():
     return send_from_directory('.', 'carlockPWA.html')
 
-# Login
+
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json or {}
@@ -151,7 +139,7 @@ def login():
         return jsonify({'token': token})
     return jsonify({'message': 'Invalid credentials'}), 401
 
-# Blynk PIN actions
+
 PIN_MAP = {
     "unlock": "V0",
     "lock": "V1",
@@ -163,6 +151,7 @@ PIN_MAP = {
     "getLocation": "V7"
 }
 
+
 @app.route('/api/<action>', methods=['POST'])
 @token_required
 def control(action):
@@ -170,7 +159,6 @@ def control(action):
     if not pin:
         return jsonify({"message": "Invalid action"}), 400
 
-    # For getLocation, pulse so repeated presses still trigger
     if action == "getLocation":
         blynk_update(pin, 1)
         time.sleep(0.2)
@@ -180,40 +168,47 @@ def control(action):
     res = blynk_update(pin, 1)
     return jsonify({"status": "sent", "response": res.text if res else "no response"})
 
-# -----------------------
-# Status endpoint for PWA
-# -----------------------
+
+@app.route('/api/app-state', methods=['POST'])
+@token_required
+def app_state():
+    global app_open_deadline
+    payload = request.get_json(silent=True) or {}
+    is_open = bool(payload.get("open", True))
+
+    if is_open:
+        app_open_deadline = time.time() + APP_OPEN_TIMEOUT_SECONDS
+        state = sync_app_open_state()
+    else:
+        app_open_deadline = 0
+        state = sync_app_open_state(force=True)
+
+    return jsonify({"ok": True, "appOpen": state})
+
+
 @app.route('/api/status', methods=['GET'])
 @token_required
 def get_status():
-    rssi = blynk_get_int("V11", 0)
+    app_open = sync_app_open_state()
 
-    # Primary mapping from the current ESP32 sketch.
-    net = blynk_get_int("V13", 0)
-    data = blynk_get_int("V14", 0)
-
-    # Fallback for older / misaligned dashboards so the PWA does not get stuck red.
-    if net not in (0, 1):
-        net = 1 if net else 0
-    if data not in (0, 1):
-        data = 1 if data else 0
-
-    engine_running = blynk_get_int("V24", 0)
-    engine_rpm = blynk_get_int("V25", 0)
+    rssi = parse_int(blynk_get("V11"), 0)
+    net = parse_int(blynk_get("V13"), 0)
+    data = parse_int(blynk_get("V14"), 0)
+    engine_running = parse_int(blynk_get("V24"), 0)
+    engine_rpm = parse_int(blynk_get("V25"), 0)
     engine_message = blynk_get("V26") or "Ready"
 
     return jsonify({
+        "appOpen": app_open,
         "rssi": rssi,
         "net": 1 if net else 0,
         "data": 1 if data else 0,
         "engineRunning": 1 if engine_running else 0,
-        "engineRpm": max(0, engine_rpm),
+        "engineRpm": engine_rpm,
         "engineMessage": str(engine_message)
     })
 
-# -----------------------
-# Get car location (V7 -> V8 -> Google)
-# -----------------------
+
 @app.route('/api/getCarLocation', methods=['GET'])
 @token_required
 def get_car_location():
@@ -247,13 +242,13 @@ def get_car_location():
     print(f"[DEBUG] Geolocation result: {loc}")
     return jsonify(loc)
 
-# Warmup
+
 @app.route('/api/warmup', methods=['GET'])
 @token_required
 def warmup():
     return jsonify({"status": "ok"})
 
-# ESP32 Google endpoint
+
 @app.route("/api/location", methods=["POST"])
 def api_location():
     auth_header = request.headers.get("Authorization", "")
@@ -262,8 +257,6 @@ def api_location():
     data = request.get_json()
     return jsonify(google_locate(data))
 
-# -----------------------
-# Run
-# -----------------------
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)

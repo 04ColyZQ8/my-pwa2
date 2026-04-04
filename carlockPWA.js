@@ -1,4 +1,12 @@
 const API_BASE = "https://carlock-backend-od8a.onrender.com";
+const STATUS_POLL_MS = 2000;
+const APP_HEARTBEAT_MS = 15000;
+
+const pending = {};
+let statusTimer = null;
+let heartbeatTimer = null;
+let statusFetchInFlight = false;
+let appVisible = false;
 
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
@@ -8,11 +16,106 @@ window.addEventListener('load', async () => {
     }
 
     loadMapFromStorage();
-    updateStatus();
-    setInterval(updateStatus, 10000);
+    document.getElementById("mapThumb").onclick = () => {
+        const url = localStorage.getItem("lastMapUrl");
+        if (url) window.open(url, "_blank");
+    };
+
+    handleVisibilityChange();
 });
 
-const pending = {};
+document.addEventListener("visibilitychange", handleVisibilityChange);
+window.addEventListener("focus", handleVisibilityChange);
+window.addEventListener("blur", handleVisibilityChange);
+window.addEventListener("pagehide", () => notifyAppState(false, true));
+window.addEventListener("beforeunload", () => notifyAppState(false, true));
+
+function isAppVisible() {
+    return document.visibilityState === "visible" && document.hasFocus();
+}
+
+function handleVisibilityChange() {
+    const visibleNow = isAppVisible();
+    if (visibleNow === appVisible && statusTimer && heartbeatTimer) {
+        return;
+    }
+
+    appVisible = visibleNow;
+
+    if (appVisible) {
+        notifyAppState(true);
+        updateStatus();
+        startStatusPolling();
+        startHeartbeat();
+    } else {
+        stopStatusPolling();
+        stopHeartbeat();
+        notifyAppState(false, true);
+    }
+}
+
+function startStatusPolling() {
+    stopStatusPolling();
+    statusTimer = setInterval(updateStatus, STATUS_POLL_MS);
+}
+
+function stopStatusPolling() {
+    if (statusTimer) {
+        clearInterval(statusTimer);
+        statusTimer = null;
+    }
+}
+
+function startHeartbeat() {
+    stopHeartbeat();
+    heartbeatTimer = setInterval(() => notifyAppState(true), APP_HEARTBEAT_MS);
+}
+
+function stopHeartbeat() {
+    if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+    }
+}
+
+async function notifyAppState(open, useBeacon = false) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const url = `${API_BASE}/api/app-state`;
+    const body = JSON.stringify({ open });
+
+    if (useBeacon && navigator.sendBeacon) {
+        const blob = new Blob([body], { type: "application/json" });
+        fetch(url, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body,
+            keepalive: true
+        }).catch(() => {});
+        try {
+            navigator.sendBeacon(url, blob);
+        } catch (_) {}
+        return;
+    }
+
+    try {
+        await fetch(url, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body,
+            keepalive: true
+        });
+    } catch (err) {
+        console.error("App state update failed", err);
+    }
+}
 
 async function sendCmd(action) {
     const token = localStorage.getItem("token");
@@ -26,6 +129,11 @@ async function sendCmd(action) {
             method: "POST",
             headers: { "Authorization": "Bearer " + token }
         });
+
+        if (action === "remoteStart") {
+            setTimeout(updateStatus, 400);
+            setTimeout(updateStatus, 1500);
+        }
     } catch (err) {
         console.error(err);
     } finally {
@@ -35,11 +143,14 @@ async function sendCmd(action) {
 
 async function updateStatus() {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token || !appVisible || statusFetchInFlight) return;
+
+    statusFetchInFlight = true;
 
     try {
         const res = await fetch(`${API_BASE}/api/status`, {
-            headers: { "Authorization": "Bearer " + token }
+            headers: { "Authorization": "Bearer " + token },
+            cache: "no-store"
         });
 
         const data = await res.json();
@@ -58,6 +169,8 @@ async function updateStatus() {
         );
     } catch (e) {
         console.error("Status error", e);
+    } finally {
+        statusFetchInFlight = false;
     }
 }
 
@@ -79,17 +192,15 @@ function updateLTE(rssi) {
 
 function updateIndicator(id, val) {
     const el = document.getElementById(id);
-    const normalized = Number(val) === 1 || val === true || String(val).toLowerCase() === "true";
-    el.style.background = normalized ? "limegreen" : "red";
+    if (el) el.style.background = val ? "limegreen" : "red";
 }
-
 
 function updateEngineStatus(running, rpm, message) {
     const rpmEl = document.getElementById("engineRpmText");
     const runningEl = document.getElementById("engineRunningText");
     const msgEl = document.getElementById("engineMessageText");
 
-    if (rpmEl) rpmEl.innerText = Number.isFinite(rpm) ? String(Math.max(0, Math.round(rpm))) : "--";
+    if (rpmEl) rpmEl.innerText = rpm > 0 ? String(rpm) : "--";
     if (msgEl) msgEl.innerText = message || "Ready";
 
     if (runningEl) {
@@ -128,12 +239,8 @@ function loadMapFromStorage() {
     document.getElementById("mapThumb").src = url || "fallback.png";
 }
 
-document.getElementById("mapThumb").onclick = () => {
-    const url = localStorage.getItem("lastMapUrl");
-    if (url) window.open(url, "_blank");
-};
-
 function logout() {
+    notifyAppState(false, true);
     localStorage.removeItem("token");
     window.location.href = "index.html";
 }
