@@ -28,6 +28,7 @@ body {
 .vehicle-meta {
     text-align: left;
     min-width: 0;
+    flex: 1;
 }
 
 .vehicle-meta h2 {
@@ -44,8 +45,38 @@ body {
 .vehicle-vin {
     margin-top: 4px;
     font-size: 0.76rem;
-    color: #8fa7c6;
+    color: #8f9bb0;
     word-break: break-all;
+}
+
+.lock-status {
+    margin-top: 8px;
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.06);
+    color: #ddd;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.lock-status.ok {
+    color: #7dff7d;
+    background: rgba(50, 205, 50, 0.16);
+    border-color: rgba(50, 205, 50, 0.35);
+}
+
+.lock-status.warn {
+    color: #ffd76a;
+    background: rgba(255, 196, 0, 0.14);
+    border-color: rgba(255, 196, 0, 0.3);
+}
+
+.lock-status.fail {
+    color: #ff8b8b;
+    background: rgba(255, 70, 70, 0.14);
+    border-color: rgba(255, 70, 70, 0.35);
 }
 
 .controls h3 {
@@ -178,7 +209,7 @@ button:active {
     text-align: left;
     display: grid;
     gap: 6px;
-    max-width: 280px;
+    max-width: 260px;
 }
 
 .engine-line {
@@ -197,8 +228,7 @@ button:active {
 }
 
 #engineRpmText,
-#engineMessageText,
-#lockMessageText {
+#engineMessageText {
     color: #fff;
 }
 

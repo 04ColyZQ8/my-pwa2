@@ -117,11 +117,6 @@ async function notifyAppState(open, useBeacon = false) {
     }
 }
 
-function setLockMessage(message) {
-    const el = document.getElementById("lockMessageText");
-    if (el) el.innerText = message || "Ready";
-}
-
 async function sendCmd(action) {
     const token = localStorage.getItem("token");
     if (!token) return window.location.href = "index.html";
@@ -129,27 +124,16 @@ async function sendCmd(action) {
     if (pending[action]) return;
     pending[action] = true;
 
-    if (action === "lock") setLockMessage("Lock request sent...");
-    if (action === "unlock") setLockMessage("Unlock request sent...");
-
     try {
-        const res = await fetch(`${API_BASE}/api/${action}`, {
+        await fetch(`${API_BASE}/api/${action}`, {
             method: "POST",
             headers: { "Authorization": "Bearer " + token }
         });
 
-        if (!res.ok) {
-            console.error(`Command ${action} failed`, await res.text());
-        }
-
         setTimeout(updateStatus, 400);
         setTimeout(updateStatus, 1500);
-        setTimeout(updateStatus, 3000);
     } catch (err) {
         console.error(err);
-        if (action === "lock" || action === "unlock") {
-            setLockMessage("Command send failed");
-        }
     } finally {
         pending[action] = false;
     }
@@ -173,40 +157,19 @@ async function updateStatus() {
             return;
         }
 
-        updateVehicleMeta(data);
         updateLTE(Number(data.rssi || 0));
         updateIndicator("netStatus", Number(data.net || 0));
         updateIndicator("dataStatus", Number(data.data || 0));
+        updateVehicleHeader(data);
         updateEngineStatus(
             Number(data.engineRunning || 0),
             Number(data.engineRpm || 0),
             data.engineMessage || "Ready"
         );
-        setLockMessage(data.lockMessage || "Ready");
     } catch (e) {
         console.error("Status error", e);
     } finally {
         statusFetchInFlight = false;
-    }
-}
-
-function updateVehicleMeta(data) {
-    const titleEl = document.getElementById("vehicleTitle");
-    const statsEl = document.getElementById("vehicleStats");
-    const vinEl = document.getElementById("vehicleVin");
-
-    if (titleEl) {
-        titleEl.innerText = data.vehicleTitle || "Vehicle";
-    }
-
-    if (statsEl) {
-        const fuelText = Number.isFinite(Number(data.fuelLevel)) ? `${Number(data.fuelLevel).toFixed(1)}%` : "--";
-        const kmText = Number(data.vehicleKms || 0) > 0 ? `${Number(data.vehicleKms).toLocaleString()} km` : "-- km";
-        statsEl.innerText = `Fuel: ${fuelText} · ${kmText}`;
-    }
-
-    if (vinEl) {
-        vinEl.innerText = `VIN: ${data.vin || '--'}`;
     }
 }
 
@@ -229,6 +192,37 @@ function updateLTE(rssi) {
 function updateIndicator(id, val) {
     const el = document.getElementById(id);
     if (el) el.style.background = val ? "limegreen" : "red";
+}
+
+function formatKm(km) {
+    const num = Number(km || 0);
+    return num.toLocaleString("en-CA");
+}
+
+function updateVehicleHeader(data) {
+    const vehicleNameEl = document.getElementById("vehicleNameText");
+    const vehicleStatsEl = document.getElementById("vehicleStatsText");
+    const vinEl = document.getElementById("vehicleVinText");
+    const lockEl = document.getElementById("lockMessageText");
+
+    const fuel = Math.round(Number(data.fuelPct || 0));
+    const km = Number(data.odometerKm || 0);
+    const vehicleName = data.vehicleName || "Vehicle";
+    const vin = data.vin || "--";
+    const lockMessage = data.lockMessage || "Ready";
+
+    if (vehicleNameEl) vehicleNameEl.innerText = vehicleName;
+    if (vehicleStatsEl) vehicleStatsEl.innerText = `Fuel: ${fuel}% · ${formatKm(km)} km`;
+    if (vinEl) vinEl.innerText = `VIN: ${vin}`;
+    if (lockEl) {
+        lockEl.innerText = lockMessage;
+        lockEl.classList.remove("ok", "warn", "fail");
+
+        const msg = lockMessage.toLowerCase();
+        if (msg.includes("success")) lockEl.classList.add("ok");
+        else if (msg.includes("fail")) lockEl.classList.add("fail");
+        else if (msg.includes("sent")) lockEl.classList.add("warn");
+    }
 }
 
 function updateEngineStatus(running, rpm, message) {
