@@ -117,6 +117,11 @@ async function notifyAppState(open, useBeacon = false) {
     }
 }
 
+function setLockMessage(message) {
+    const el = document.getElementById("lockMessageText");
+    if (el) el.innerText = message || "Ready";
+}
+
 async function sendCmd(action) {
     const token = localStorage.getItem("token");
     if (!token) return window.location.href = "index.html";
@@ -124,18 +129,27 @@ async function sendCmd(action) {
     if (pending[action]) return;
     pending[action] = true;
 
+    if (action === "lock") setLockMessage("Lock request sent...");
+    if (action === "unlock") setLockMessage("Unlock request sent...");
+
     try {
-        await fetch(`${API_BASE}/api/${action}`, {
+        const res = await fetch(`${API_BASE}/api/${action}`, {
             method: "POST",
             headers: { "Authorization": "Bearer " + token }
         });
 
-        if (action === "remoteStart") {
-            setTimeout(updateStatus, 400);
-            setTimeout(updateStatus, 1500);
+        if (!res.ok) {
+            console.error(`Command ${action} failed`, await res.text());
         }
+
+        setTimeout(updateStatus, 400);
+        setTimeout(updateStatus, 1500);
+        setTimeout(updateStatus, 3000);
     } catch (err) {
         console.error(err);
+        if (action === "lock" || action === "unlock") {
+            setLockMessage("Command send failed");
+        }
     } finally {
         pending[action] = false;
     }
@@ -159,6 +173,7 @@ async function updateStatus() {
             return;
         }
 
+        updateVehicleMeta(data);
         updateLTE(Number(data.rssi || 0));
         updateIndicator("netStatus", Number(data.net || 0));
         updateIndicator("dataStatus", Number(data.data || 0));
@@ -167,10 +182,31 @@ async function updateStatus() {
             Number(data.engineRpm || 0),
             data.engineMessage || "Ready"
         );
+        setLockMessage(data.lockMessage || "Ready");
     } catch (e) {
         console.error("Status error", e);
     } finally {
         statusFetchInFlight = false;
+    }
+}
+
+function updateVehicleMeta(data) {
+    const titleEl = document.getElementById("vehicleTitle");
+    const statsEl = document.getElementById("vehicleStats");
+    const vinEl = document.getElementById("vehicleVin");
+
+    if (titleEl) {
+        titleEl.innerText = data.vehicleTitle || "Vehicle";
+    }
+
+    if (statsEl) {
+        const fuelText = Number.isFinite(Number(data.fuelLevel)) ? `${Number(data.fuelLevel).toFixed(1)}%` : "--";
+        const kmText = Number(data.vehicleKms || 0) > 0 ? `${Number(data.vehicleKms).toLocaleString()} km` : "-- km";
+        statsEl.innerText = `Fuel: ${fuelText} · ${kmText}`;
+    }
+
+    if (vinEl) {
+        vinEl.innerText = `VIN: ${data.vin || '--'}`;
     }
 }
 

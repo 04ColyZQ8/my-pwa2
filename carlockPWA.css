@@ -41,6 +41,13 @@ body {
     color: #bbb;
 }
 
+.vehicle-vin {
+    margin-top: 4px;
+    font-size: 0.76rem;
+    color: #8fa7c6;
+    word-break: break-all;
+}
+
 .controls h3 {
     margin: 16px 0;
     font-size: 1.15rem;
@@ -74,8 +81,6 @@ button:active {
     background: #555;
 }
 
-
-
 #mapBox {
     margin-top: 14px;
     padding: 0 10px;
@@ -84,11 +89,9 @@ button:active {
 
 #mapThumb {
     width: 100%;
-    max-height: 75vh;   /* BEST option */
-
+    max-height: 75vh;
     object-fit: contain;
     object-position: top center;
-
     border-radius: 12px;
     border: 2px solid #444;
     cursor: pointer;
@@ -170,33 +173,12 @@ button:active {
     vertical-align: middle;
 }
 
-@media (max-width: 420px) {
-    .vehicle-meta h2 {
-        font-size: 1.2rem;
-    }
-
-    .vehicle-status {
-        font-size: 0.8rem;
-    }
-
-    .compact-lte {
-        min-width: 122px;
-        padding: 7px 8px;
-    }
-
-    button {
-        padding: 14px 8px;
-        font-size: 0.92rem;
-    }
-}
-
-
 .engine-panel {
     margin-top: 10px;
     text-align: left;
     display: grid;
     gap: 6px;
-    max-width: 260px;
+    max-width: 280px;
 }
 
 .engine-line {
@@ -215,7 +197,8 @@ button:active {
 }
 
 #engineRpmText,
-#engineMessageText {
+#engineMessageText,
+#lockMessageText {
     color: #fff;
 }
 
@@ -241,6 +224,28 @@ button:active {
 }
 
 @media (max-width: 420px) {
+    .vehicle-meta h2 {
+        font-size: 1.2rem;
+    }
+
+    .vehicle-status {
+        font-size: 0.8rem;
+    }
+
+    .vehicle-vin {
+        font-size: 0.72rem;
+    }
+
+    .compact-lte {
+        min-width: 122px;
+        padding: 7px 8px;
+    }
+
+    button {
+        padding: 14px 8px;
+        font-size: 0.92rem;
+    }
+
     .engine-panel {
         max-width: 220px;
     }

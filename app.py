@@ -6,9 +6,6 @@ from functools import wraps
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
-# -----------------------
-# Config
-# -----------------------
 app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET")
 
 BLYNK_TOKEN = os.getenv("BLYNK_TOKEN")
@@ -23,9 +20,9 @@ APP_OPEN_TIMEOUT_SECONDS = 45
 app_open_deadline = 0.0
 last_app_open_sent = None
 
-# -----------------------
-# Helpers
-# -----------------------
+_vin_decode_cache = {}
+
+
 def blynk_update(pin, value):
     if isinstance(pin, int):
         pin = f"V{pin}"
@@ -37,6 +34,13 @@ def blynk_update(pin, value):
     except Exception as e:
         print(f"[DEBUG] blynk_update({pin}) error: {e}")
         return None
+
+
+def blynk_pulse(pin, active_value=1, idle_value=0, hold_seconds=0.25):
+    first = blynk_update(pin, active_value)
+    time.sleep(hold_seconds)
+    blynk_update(pin, idle_value)
+    return first
 
 
 def _normalize_blynk_value(text):
@@ -72,11 +76,13 @@ def google_locate(json_payload):
         r.raise_for_status()
         d = r.json()
         loc = d.get("location", {})
+        lat = loc.get('lat')
+        lng = loc.get('lng')
         return {
-            "lat": loc.get("lat"),
-            "lng": loc.get("lng"),
+            "lat": lat,
+            "lng": lng,
             "accuracy": d.get("accuracy", 0),
-            "mapUrl": f"https://maps.googleapis.com/maps/api/staticmap?center={loc.get('lat')},{loc.get('lng')}&zoom=18&size=400x400&markers=color:red%7C{loc.get('lat')},{loc.get('lng')}&key={GOOGLE_API_KEY}"
+            "mapUrl": f"https://maps.googleapis.com/maps/api/staticmap?center={lat},{lng}&zoom=18&size=400x400&markers=color:red%7C{lat},{lng}&key={GOOGLE_API_KEY}"
         }
     except Exception as e:
         print(f"[DEBUG] google_locate error: {e}, response: {r.text if 'r' in locals() else ''}")
@@ -94,6 +100,22 @@ def parse_int(value, default=0):
         return default
 
 
+def parse_float(value, default=0.0, digits=1):
+    try:
+        if value is None:
+            return default
+        return round(float(str(value).strip()), digits)
+    except Exception:
+        return default
+
+
+def clean_string(value, default=""):
+    if value is None:
+        return default
+    value = str(value).strip()
+    return value if value else default
+
+
 def sync_app_open_state(force=False):
     global app_open_deadline, last_app_open_sent
     desired = 1 if time.time() < app_open_deadline else 0
@@ -102,9 +124,58 @@ def sync_app_open_state(force=False):
         last_app_open_sent = desired
     return desired
 
-# -----------------------
-# JWT Auth
-# -----------------------
+
+def decode_vin_details(vin):
+    vin = clean_string(vin, "").upper()
+    if len(vin) != 17:
+        return None
+
+    cached = _vin_decode_cache.get(vin)
+    if cached:
+        return cached
+
+    url = f"https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValuesExtended/{vin}?format=json"
+    try:
+        r = requests.get(url, timeout=8)
+        r.raise_for_status()
+        payload = r.json()
+        results = payload.get("Results") or []
+        row = results[0] if results else {}
+
+        year = clean_string(row.get("ModelYear"))
+        make = clean_string(row.get("Make"))
+        model = clean_string(row.get("Model"))
+        trim = clean_string(row.get("Trim"))
+
+        title_parts = [p for p in [year, make, model] if p]
+        title = " ".join(title_parts).strip()
+        if trim and trim.lower() not in title.lower():
+            title = f"{title} {trim}".strip()
+
+        decoded = {
+            "year": year,
+            "make": make,
+            "model": model,
+            "trim": trim,
+            "title": title or "Vehicle",
+        }
+        _vin_decode_cache[vin] = decoded
+        return decoded
+    except Exception as e:
+        print(f"[DEBUG] decode_vin_details({vin}) error: {e}")
+        return None
+
+
+def build_vehicle_title(vin, provided_title):
+    provided_title = clean_string(provided_title)
+    if provided_title:
+        return provided_title
+    decoded = decode_vin_details(vin)
+    if decoded and decoded.get("title"):
+        return decoded["title"]
+    return "Vehicle"
+
+
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -120,9 +191,7 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# -----------------------
-# Routes
-# -----------------------
+
 @app.route("/")
 def root():
     return send_from_directory('.', 'carlockPWA.html')
@@ -159,14 +228,12 @@ def control(action):
     if not pin:
         return jsonify({"message": "Invalid action"}), 400
 
-    if action == "getLocation":
-        blynk_update(pin, 1)
-        time.sleep(0.2)
-        blynk_update(pin, 0)
-        return jsonify({"status": "sent", "response": "location trigger pulsed"})
-
-    res = blynk_update(pin, 1)
-    return jsonify({"status": "sent", "response": res.text if res else "no response"})
+    res = blynk_pulse(pin)
+    return jsonify({
+        "status": "sent",
+        "action": action,
+        "response": res.text if res else "no response"
+    })
 
 
 @app.route('/api/app-state', methods=['POST'])
@@ -194,18 +261,30 @@ def get_status():
     rssi = parse_int(blynk_get("V11"), 0)
     net = parse_int(blynk_get("V13"), 0)
     data = parse_int(blynk_get("V14"), 0)
+    fuel_level = parse_float(blynk_get("V16"), 0.0, 1)
+    vehicle_kms = parse_int(blynk_get("V17"), 0)
+    vin = clean_string(blynk_get("V18"), "")
+    vehicle_title = build_vehicle_title(vin, blynk_get("V19"))
+    door_unlocked = parse_int(blynk_get("V20"), 0)
     engine_running = parse_int(blynk_get("V24"), 0)
     engine_rpm = parse_int(blynk_get("V25"), 0)
-    engine_message = blynk_get("V26") or "Ready"
+    engine_message = clean_string(blynk_get("V26"), "Ready")
+    lock_message = clean_string(blynk_get("V27"), "Ready")
 
     return jsonify({
         "appOpen": app_open,
         "rssi": rssi,
         "net": 1 if net else 0,
         "data": 1 if data else 0,
+        "fuelLevel": fuel_level,
+        "vehicleKms": vehicle_kms,
+        "vin": vin,
+        "vehicleTitle": vehicle_title,
+        "doorUnlocked": 1 if door_unlocked else 0,
         "engineRunning": 1 if engine_running else 0,
         "engineRpm": engine_rpm,
-        "engineMessage": str(engine_message)
+        "engineMessage": engine_message,
+        "lockMessage": lock_message
     })
 
 
@@ -214,13 +293,11 @@ def get_status():
 def get_car_location():
     print("[DEBUG] Triggering V7 scan")
 
-    blynk_update("V7", 1)
-    time.sleep(0.2)
-    blynk_update("V7", 0)
+    blynk_pulse("V7")
 
     scan_json = None
     for i in range(15):
-        print(f"[DEBUG] Waiting for V8 data... attempt {i+1}")
+        print(f"[DEBUG] Waiting for V8 data... attempt {i + 1}")
         scan_json = blynk_get("V8")
         print(f"[DEBUG] V8 value: {scan_json}")
         if scan_json:
