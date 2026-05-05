@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Remote Control</title>
+<link rel="stylesheet" href="carlockPWA.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-top">
+    <div class="vehicle-meta">
+      <h2 id="vehicleNameText">Vehicle</h2>
+      <div class="vehicle-status" id="vehicleStatsText">Fuel: --% · -- km</div>
+      <div class="vehicle-vin" id="vehicleVinText">VIN: --</div>
+      <div class="lock-status" id="lockMessageText">Ready</div>
+      <div class="gps-status" id="gpsStatusText">GPS: --</div>
+
+      <div class="engine-panel">
+        <div class="engine-line"><span class="engine-label">RPM:</span> <span id="engineRpmText">--</span></div>
+        <div class="engine-line"><span class="engine-label">Engine:</span> <span id="engineRunningText" class="engine-pill off">OFF</span></div>
+        <div class="engine-line"><span class="engine-label">Status:</span> <span id="engineMessageText">Ready</span></div>
+      </div>
+    </div>
+
+    <div class="lte-box compact-lte">
+      <div class="lte-title-row">
+        <span class="lte-title">LTE</span>
+        <span id="rssiText">RSSI: --</span>
+      </div>
+
+      <div class="bars compact-bars" aria-label="LTE signal bars">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+
+      <div class="indicators compact-indicators">
+        <div><span id="netStatus" class="dot"></span>Net</div>
+        <div><span id="dataStatus" class="dot"></span>Data</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="controls">
+  <h3>Controls</h3>
+  <div class="button-grid">
+    <button onclick="sendCmd('unlock')">🔓<br>Unlock</button>
+    <button onclick="sendCmd('lock')">🔒<br>Lock</button>
+    <button onclick="sendCmd('soundAlarm')">📢<br>Sound Alarm</button>
+    <button onclick="sendCmd('stopAlarm')">🔇<br>Stop Alarm</button>
+    <button onclick="sendCmd('flashLights')">💡<br>Flash Lights</button>
+    <button onclick="sendCmd('stopLights')">🚫💡<br>Stop Lights</button>
+    <button onclick="sendCmd('remoteStart')">🚗<br>Remote Start</button>
+    <button onclick="getLocation()">📍<br>Get Location</button>
+    <button onclick="logout()">🚪<br>Logout</button>
+  </div>
+
+  <div id="mapBox">
+    <img id="mapThumb" src="" alt="location loading...">
+    <div id="mapInfoText" class="map-info">Tap Locate to find your car</div>
+  </div>
+</section>
+
+<script src="carlockPWA.js"></script>
+</body>
+</html>
