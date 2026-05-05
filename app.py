@@ -77,21 +77,45 @@ def google_locate(json_payload):
         r.raise_for_status()
         d = r.json()
         loc = d.get("location", {})
-        return {
-            "lat": loc.get("lat"),
-            "lng": loc.get("lng"),
-            "accuracy": d.get("accuracy", 0),
-            "mapUrl": (
-                "https://maps.googleapis.com/maps/api/staticmap"
-                f"?center={loc.get('lat')},{loc.get('lng')}"
-                "&zoom=18&size=400x400"
-                f"&markers=color:red%7C{loc.get('lat')},{loc.get('lng')}"
-                f"&key={GOOGLE_API_KEY}"
-            )
-        }
+        return build_map_result(loc.get("lat"), loc.get("lng"), d.get("accuracy", 0), "wifi")
     except Exception as e:
         print(f"[DEBUG] google_locate error: {e}, response: {r.text if 'r' in locals() else ''}")
         return None
+
+
+def coords_look_sane(lat, lng):
+    try:
+        lat = float(lat)
+        lng = float(lng)
+    except Exception:
+        return False
+    if lat == 0 and lng == 0:
+        return False
+    return -90 <= lat <= 90 and -180 <= lng <= 180
+
+
+def build_map_result(lat, lng, accuracy=0, source="onstar", extra=None):
+    if not coords_look_sane(lat, lng):
+        return None
+    lat = float(lat)
+    lng = float(lng)
+    result = {
+        "lat": lat,
+        "lng": lng,
+        "accuracy": accuracy or 0,
+        "source": source,
+        "googleMapsUrl": f"https://www.google.com/maps?q={lat:.6f},{lng:.6f}",
+        "mapUrl": (
+            "https://maps.googleapis.com/maps/api/staticmap"
+            f"?center={lat:.6f},{lng:.6f}"
+            "&zoom=18&size=400x400"
+            f"&markers=color:red%7C{lat:.6f},{lng:.6f}"
+            f"&key={GOOGLE_API_KEY}"
+        )
+    }
+    if isinstance(extra, dict):
+        result.update(extra)
+    return result
 
 
 def parse_int(value, default=0):
@@ -288,40 +312,59 @@ def get_status():
         "lockMessage": clean_text(blynk_get("V27"), "Ready"),
         "engineRunning": 1 if parse_int(blynk_get("V24"), 0) else 0,
         "engineRpm": parse_int(blynk_get("V25"), 0),
-        "engineMessage": clean_text(blynk_get("V26"), "Ready")
+        "engineMessage": clean_text(blynk_get("V26"), "Ready"),
+        "gpsLat": parse_float(blynk_get("V28"), 0.0),
+        "gpsLng": parse_float(blynk_get("V29"), 0.0),
+        "gpsStatus": clean_text(blynk_get("V30"), "GPS unavailable"),
+        "gpsSpeedKmh": parse_int(blynk_get("V31"), 0),
+        "gpsHeading": parse_int(blynk_get("V32"), 0)
     })
 
 
 @app.route('/api/getCarLocation', methods=['GET'])
 @token_required
 def get_car_location():
-    print("[DEBUG] Triggering V7 scan")
+    print("[DEBUG] Triggering V7 location request - OnStar GPS only")
 
+    # Ask ESP32 to wake the bus and refresh OnStar GPS.
+    # IMPORTANT: do NOT use Google Wi-Fi geolocation fallback here. It produced bad
+    # cached/remote coordinates in testing. Only accept V28/V29 from OnStar CAN GPS.
     blynk_pulse("V7")
 
-    scan_json = None
-    for i in range(15):
-        print(f"[DEBUG] Waiting for V8 data... attempt {i+1}")
-        scan_json = blynk_get("V8")
-        print(f"[DEBUG] V8 value: {scan_json}")
-        if scan_json:
+    loc = None
+    for i in range(8):
+        lat = parse_float(blynk_get("V28"), 0.0)
+        lng = parse_float(blynk_get("V29"), 0.0)
+        gps_status = clean_text(blynk_get("V30"), "OnStar GPS")
+        speed = parse_int(blynk_get("V31"), 0)
+        heading = parse_int(blynk_get("V32"), 0)
+
+        print(f"[DEBUG] OnStar GPS attempt {i+1}: lat={lat}, lng={lng}, status={gps_status}")
+
+        if coords_look_sane(lat, lng):
+            loc = build_map_result(
+                lat,
+                lng,
+                10,
+                "OnStar GPS",
+                {
+                    "gpsStatus": gps_status,
+                    "speedKmh": speed,
+                    "heading": heading,
+                }
+            )
             break
+
         time.sleep(1)
-    else:
-        return jsonify({"error": "No scan data from V8"}), 400
 
-    if isinstance(scan_json, str):
-        try:
-            scan_json = json.loads(scan_json)
-        except Exception:
-            return jsonify({"error": "Invalid scan data in V8"}), 400
+    if loc:
+        print(f"[DEBUG] OnStar vehicle location result: {loc}")
+        return jsonify(loc)
 
-    loc = google_locate(scan_json)
-    if not loc:
-        return jsonify({"error": "Google geolocation failed"}), 500
-
-    print(f"[DEBUG] Geolocation result: {loc}")
-    return jsonify(loc)
+    return jsonify({
+        "error": "onstar_gps_not_ready",
+        "message": "OnStar GPS not ready yet. Try again in a second. Wi-Fi fallback is disabled to avoid bad coordinates."
+    }), 202
 
 
 @app.route('/api/warmup', methods=['GET'])
@@ -335,8 +378,13 @@ def api_location():
     auth_header = request.headers.get("Authorization", "")
     if auth_header != f"Bearer {ESP32_SECRET}":
         return jsonify({"error": "Unauthorized"}), 401
-    data = request.get_json()
-    return jsonify(google_locate(data))
+
+    # Legacy ESP32 Wi-Fi geolocation endpoint intentionally disabled.
+    # Location now comes from OnStar GPS via Blynk V28/V29 only.
+    return jsonify({
+        "error": "wifi_geolocation_disabled",
+        "message": "Use /api/getCarLocation; OnStar GPS only."
+    }), 410
 
 
 if __name__ == "__main__":

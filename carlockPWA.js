@@ -17,7 +17,7 @@ window.addEventListener('load', async () => {
 
     loadMapFromStorage();
     document.getElementById("mapThumb").onclick = () => {
-        const url = localStorage.getItem("lastMapUrl");
+        const url = localStorage.getItem("lastGoogleMapsUrl") || localStorage.getItem("lastMapUrl");
         if (url) window.open(url, "_blank");
     };
 
@@ -166,6 +166,7 @@ async function updateStatus() {
             Number(data.engineRpm || 0),
             data.engineMessage || "Ready"
         );
+        updateGpsStatus(data);
     } catch (e) {
         console.error("Status error", e);
     } finally {
@@ -225,6 +226,23 @@ function updateVehicleHeader(data) {
     }
 }
 
+function updateGpsStatus(data) {
+    const el = document.getElementById("gpsStatusText");
+    if (!el) return;
+
+    const lat = Number(data.gpsLat || 0);
+    const lng = Number(data.gpsLng || 0);
+    const source = data.gpsStatus || "GPS unavailable";
+    const speed = Number(data.gpsSpeedKmh || 0);
+    const heading = Number(data.gpsHeading || 0);
+
+    if (lat && lng) {
+        el.innerText = `GPS: ${source} · ${lat.toFixed(5)}, ${lng.toFixed(5)} · ${speed} km/h · ${heading}°`;
+    } else {
+        el.innerText = `GPS: ${source}`;
+    }
+}
+
 function updateEngineStatus(running, rpm, message) {
     const rpmEl = document.getElementById("engineRpmText");
     const runningEl = document.getElementById("engineRunningText");
@@ -240,33 +258,63 @@ function updateEngineStatus(running, rpm, message) {
     }
 }
 
-async function getLocation() {
+async function getLocation(retryCount = 0) {
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    const map = document.getElementById("mapThumb");
+    const info = document.getElementById("mapInfoText");
+
+    // Prevent stale bad Wi-Fi/cached maps from displaying while OnStar wakes up.
+    if (retryCount === 0) {
+        localStorage.removeItem("lastMapUrl");
+        localStorage.removeItem("lastGoogleMapsUrl");
+        if (info) info.innerText = "Getting OnStar GPS...";
+    }
+
     try {
         const res = await fetch(`${API_BASE}/api/getCarLocation`, {
-            headers: { "Authorization": "Bearer " + token }
+            headers: { "Authorization": "Bearer " + token },
+            cache: "no-store"
         });
 
         const data = await res.json();
 
+        if (res.status === 202 && retryCount < 4) {
+            if (info) info.innerText = `Waiting for OnStar GPS... ${retryCount + 1}/4`;
+            setTimeout(() => getLocation(retryCount + 1), 1500);
+            return;
+        }
+
         if (data.mapUrl) {
             localStorage.setItem("lastMapUrl", data.mapUrl);
-            document.getElementById("mapThumb").src = data.mapUrl;
+            if (data.googleMapsUrl) localStorage.setItem("lastGoogleMapsUrl", data.googleMapsUrl);
+            if (map) map.src = data.mapUrl;
+            if (info) {
+                const source = data.source || "OnStar GPS";
+                const lat = Number(data.lat || 0);
+                const lng = Number(data.lng || 0);
+                const speed = Number(data.speedKmh || 0);
+                const heading = Number(data.heading || 0);
+                info.innerText = `${source} · ${lat.toFixed(6)}, ${lng.toFixed(6)} · ${speed} km/h · heading ${heading}°`;
+            }
         } else {
             console.error("Location data invalid:", data);
-            document.getElementById("mapThumb").src = "fallback.png";
+            if (info) info.innerText = data.message || "OnStar GPS not ready";
+            if (map) map.src = "fallback.png";
         }
     } catch (err) {
         console.error("Failed to fetch car location:", err);
-        document.getElementById("mapThumb").src = "fallback.png";
+        if (info) info.innerText = "Location request failed";
+        if (map) map.src = "fallback.png";
     }
 }
 
 function loadMapFromStorage() {
     const url = localStorage.getItem("lastMapUrl");
     document.getElementById("mapThumb").src = url || "fallback.png";
+    const info = document.getElementById("mapInfoText");
+    if (info && url) info.innerText = "Last known location";
 }
 
 function logout() {

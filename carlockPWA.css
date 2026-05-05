@@ -288,3 +288,16 @@ button:active {
         min-width: 50px;
     }
 }
+
+.gps-status {
+    margin-top: 6px;
+    font-size: 0.78rem;
+    color: #9fb3cc;
+    word-break: break-word;
+}
+
+.map-info {
+    margin-top: 8px;
+    color: #cbd7e6;
+    font-size: 0.88rem;
+}
