@@ -200,17 +200,39 @@ function formatKm(km) {
     return num.toLocaleString("en-CA");
 }
 
+function getCachedVehicleInfo() {
+    try {
+        return JSON.parse(localStorage.getItem("vehicleInfoCache") || "{}");
+    } catch (_) {
+        return {};
+    }
+}
+
+function saveVehicleInfoCache(info) {
+    const current = getCachedVehicleInfo();
+    const next = Object.assign({}, current, info, { ts: Date.now() });
+    localStorage.setItem("vehicleInfoCache", JSON.stringify(next));
+}
+
 function updateVehicleHeader(data) {
     const vehicleNameEl = document.getElementById("vehicleNameText");
     const vehicleStatsEl = document.getElementById("vehicleStatsText");
     const vinEl = document.getElementById("vehicleVinText");
     const lockEl = document.getElementById("lockMessageText");
 
+    const cached = getCachedVehicleInfo();
     const fuel = Math.round(Number(data.fuelPct || 0));
     const km = Number(data.odometerKm || 0);
-    const vehicleName = data.vehicleName || "Vehicle";
-    const vin = data.vin || "--";
+    const vin = data.vin || cached.vin || "--";
+    let vehicleName = data.vehicleName || cached.vehicleName || "Vehicle";
+    if ((!data.vehicleName || data.vehicleName === "Vehicle") && cached.vehicleName) {
+        vehicleName = cached.vehicleName;
+    }
     const lockMessage = data.lockMessage || "Ready";
+
+    if (vin && vin !== "--") {
+        saveVehicleInfoCache({ vin, vehicleName });
+    }
 
     if (vehicleNameEl) vehicleNameEl.innerText = vehicleName;
     if (vehicleStatsEl) vehicleStatsEl.innerText = `Fuel: ${fuel}% · ${formatKm(km)} km`;

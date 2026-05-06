@@ -22,6 +22,29 @@ last_app_open_sent = None
 
 VIN_CACHE = {}
 VIN_CACHE_TTL_SECONDS = 12 * 60 * 60
+VIN_CACHE_FILE = os.getenv("VIN_CACHE_FILE", "vin_cache.json")
+
+
+def load_vin_cache():
+    global VIN_CACHE
+    try:
+        if os.path.exists(VIN_CACHE_FILE):
+            with open(VIN_CACHE_FILE, "r", encoding="utf-8") as f:
+                VIN_CACHE = json.load(f) or {}
+    except Exception as e:
+        print(f"[DEBUG] load_vin_cache error: {e}")
+        VIN_CACHE = {}
+
+
+def save_vin_cache():
+    try:
+        with open(VIN_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(VIN_CACHE, f)
+    except Exception as e:
+        print(f"[DEBUG] save_vin_cache error: {e}")
+
+
+load_vin_cache()
 
 
 def blynk_update(pin, value):
@@ -202,6 +225,7 @@ def decode_vin_nhtsa(vin):
             return None
 
         VIN_CACHE[vin] = {"ts": now, "data": decoded}
+        save_vin_cache()
         return decoded
     except Exception as e:
         print(f"[DEBUG] decode_vin_nhtsa error for {vin}: {e}")
