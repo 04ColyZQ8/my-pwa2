@@ -1,4 +1,4 @@
-const API_BASE = "https://carlock-backend-od8a.onrender.com";
+const API_BASE = "https://fnjal2wmsd.execute-api.us-east-1.amazonaws.com"; // same-origin API Gateway or CloudFront /api/* route
 const STATUS_POLL_MS = 2000;
 const APP_HEARTBEAT_MS = 15000;
 
