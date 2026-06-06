@@ -7,6 +7,8 @@ let statusTimer = null;
 let heartbeatTimer = null;
 let statusFetchInFlight = false;
 let appVisible = false;
+let locationBusy = false;
+let locationCooldownUntil = 0;
 
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
@@ -175,7 +177,8 @@ async function updateStatus() {
 }
 
 function updateLTE(rssi) {
-    document.getElementById("rssiText").innerText = `RSSI: ${rssi}`;
+    const rssiEl = document.getElementById("rssiText");
+    if (rssiEl) rssiEl.innerText = rssi > 0 ? `RSSI: ${rssi}` : "RSSI: --";
 
     let bars = 0;
     if (rssi >= 25) bars = 5;
@@ -280,19 +283,26 @@ function updateEngineStatus(running, rpm, message) {
     }
 }
 
-async function getLocation(retryCount = 0) {
+async function getLocation() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    const now = Date.now();
     const map = document.getElementById("mapThumb");
     const info = document.getElementById("mapInfoText");
 
-    // Prevent stale bad Wi-Fi/cached maps from displaying while OnStar wakes up.
-    if (retryCount === 0) {
-        localStorage.removeItem("lastMapUrl");
-        localStorage.removeItem("lastGoogleMapsUrl");
-        if (info) info.innerText = "Getting OnStar GPS...";
+    // Debounce: Lambda queues a GL command every call, so do not poll this endpoint repeatedly.
+    if (locationBusy || now < locationCooldownUntil) {
+        if (info) info.innerText = "Location request already sent; waiting for vehicle GPS...";
+        return;
     }
+
+    locationBusy = true;
+    locationCooldownUntil = now + 20000;
+
+    localStorage.removeItem("lastMapUrl");
+    localStorage.removeItem("lastGoogleMapsUrl");
+    if (info) info.innerText = "Location request sent. Waiting for vehicle GPS...";
 
     try {
         const res = await fetch(`${API_BASE}/api/getCarLocation`, {
@@ -301,12 +311,6 @@ async function getLocation(retryCount = 0) {
         });
 
         const data = await res.json();
-
-        if (res.status === 202 && retryCount < 4) {
-            if (info) info.innerText = `Waiting for OnStar GPS... ${retryCount + 1}/4`;
-            setTimeout(() => getLocation(retryCount + 1), 1500);
-            return;
-        }
 
         if (data.mapUrl) {
             localStorage.setItem("lastMapUrl", data.mapUrl);
@@ -321,14 +325,18 @@ async function getLocation(retryCount = 0) {
                 info.innerText = `${source} · ${lat.toFixed(6)}, ${lng.toFixed(6)} · ${speed} km/h · heading ${heading}°`;
             }
         } else {
-            console.error("Location data invalid:", data);
-            if (info) info.innerText = data.message || "OnStar GPS not ready";
-            if (map) map.src = "fallback.png";
+            // 202/not ready is normal. Status polling will update GPS when ESP32 publishes location.
+            if (info) info.innerText = data.message || "Location command sent; GPS not ready yet";
+            if (map && !map.src) map.src = "fallback.png";
         }
     } catch (err) {
-        console.error("Failed to fetch car location:", err);
+        console.error("Failed to request car location:", err);
         if (info) info.innerText = "Location request failed";
         if (map) map.src = "fallback.png";
+    } finally {
+        locationBusy = false;
+        setTimeout(updateStatus, 1500);
+        setTimeout(updateStatus, 5000);
     }
 }
 
