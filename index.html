@@ -17,7 +17,10 @@
 
 <script>
 const API_BASE = "https://fnjal2wmsd.execute-api.us-east-1.amazonaws.com";
-
+const existingToken = localStorage.getItem("token");
+if (existingToken) {
+    window.location.href = "carlockPWA.html";
+}
 document.getElementById("loginBtn").addEventListener("click", async () => {
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
