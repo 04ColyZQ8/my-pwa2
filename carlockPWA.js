@@ -262,12 +262,36 @@ function updateGpsStatus(data) {
     const heading = Number(data.gpsHeading || 0);
 
     if (lat && lng) {
-        el.innerText = `GPS: ${source} · ${lat.toFixed(5)}, ${lng.toFixed(5)} · ${speed} km/h · ${heading}°`;
+        el.innerText =
+            `GPS: ${source} · ${lat.toFixed(5)}, ${lng.toFixed(5)} · ${speed} km/h · ${heading}°`;
+
+        const map = document.getElementById("mapThumb");
+
+        const osm =
+            `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}` +
+            `&zoom=15&size=600x350&markers=${lat},${lng},red-pushpin`;
+
+        if (map) {
+            map.src = osm;
+        }
+
+        localStorage.setItem("lastMapUrl", osm);
+
+        localStorage.setItem(
+            "lastGoogleMapsUrl",
+            `https://maps.google.com/?q=${lat},${lng}`
+        );
+
+        const info = document.getElementById("mapInfoText");
+        if (info) {
+            info.innerText =
+                `${source} · ${lat.toFixed(6)}, ${lng.toFixed(6)} · ${speed} km/h`;
+        }
+
     } else {
         el.innerText = `GPS: ${source}`;
     }
 }
-
 function updateEngineStatus(running, rpm, message) {
     const rpmEl = document.getElementById("engineRpmText");
     const runningEl = document.getElementById("engineRunningText");
