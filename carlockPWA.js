@@ -253,7 +253,8 @@ function updateVehicleHeader(data) {
 
 function updateGpsStatus(data) {
     const el = document.getElementById("gpsStatusText");
-    if (!el) return;
+    const map = document.getElementById("mapThumb");
+    const info = document.getElementById("mapInfoText");
 
     const lat = Number(data.gpsLat || 0);
     const lng = Number(data.gpsLng || 0);
@@ -262,34 +263,28 @@ function updateGpsStatus(data) {
     const heading = Number(data.gpsHeading || 0);
 
     if (lat && lng) {
-        el.innerText =
-            `GPS: ${source} · ${lat.toFixed(5)}, ${lng.toFixed(5)} · ${speed} km/h · ${heading}°`;
+        const googleUrl = `https://maps.google.com/?q=${lat},${lng}`;
 
-        const map = document.getElementById("mapThumb");
+        if (el) {
+            el.innerText = `GPS: ${source} · ${lat.toFixed(5)}, ${lng.toFixed(5)} · ${speed} km/h · ${heading}°`;
+        }
 
-        const osm =
-            `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}` +
-            `&zoom=15&size=600x350&markers=${lat},${lng},red-pushpin`;
+        if (info) {
+            info.innerText = `${source} · ${lat.toFixed(6)}, ${lng.toFixed(6)} · tap map to open`;
+        }
 
         if (map) {
-            map.src = osm;
+            map.src = "fallback.png";
+            map.style.cursor = "pointer";
+            map.onclick = () => window.open(googleUrl, "_blank");
         }
 
-        localStorage.setItem("lastMapUrl", osm);
-
-        localStorage.setItem(
-            "lastGoogleMapsUrl",
-            `https://maps.google.com/?q=${lat},${lng}`
-        );
-
-        const info = document.getElementById("mapInfoText");
-        if (info) {
-            info.innerText =
-                `${source} · ${lat.toFixed(6)}, ${lng.toFixed(6)} · ${speed} km/h`;
-        }
-
+        localStorage.setItem("lastGoogleMapsUrl", googleUrl);
+        localStorage.setItem("lastMapUrl", "fallback.png");
     } else {
-        el.innerText = `GPS: ${source}`;
+        if (el) el.innerText = `GPS: ${source}`;
+        if (info) info.innerText = "Location unavailable";
+        if (map) map.src = "fallback.png";
     }
 }
 function updateEngineStatus(running, rpm, message) {
