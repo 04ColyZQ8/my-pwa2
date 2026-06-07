@@ -263,24 +263,30 @@ function updateGpsStatus(data) {
     const heading = Number(data.gpsHeading || 0);
 
     if (lat && lng) {
-        const googleUrl = `https://maps.google.com/?q=${lat},${lng}`;
+        const googleUrl = data.googleMapsUrl || `https://maps.google.com/?q=${lat},${lng}`;
+        const staticMap = data.staticMapUrl || data.mapUrl || "";
 
         if (el) {
             el.innerText = `GPS: ${source} · ${lat.toFixed(5)}, ${lng.toFixed(5)} · ${speed} km/h · ${heading}°`;
         }
 
-        if (info) {
-            info.innerText = `${source} · ${lat.toFixed(6)}, ${lng.toFixed(6)} · tap map to open`;
+        if (staticMap && map) {
+            map.src = staticMap;
+            localStorage.setItem("lastMapUrl", staticMap);
+        } else if (map && !map.src) {
+            map.src = "fallback.png";
         }
 
         if (map) {
-            map.src = "fallback.png";
             map.style.cursor = "pointer";
             map.onclick = () => window.open(googleUrl, "_blank");
         }
 
         localStorage.setItem("lastGoogleMapsUrl", googleUrl);
-        localStorage.setItem("lastMapUrl", "fallback.png");
+
+        if (info) {
+            info.innerText = `${source} · ${lat.toFixed(6)}, ${lng.toFixed(6)} · tap map to open`;
+        }
     } else {
         if (el) el.innerText = `GPS: ${source}`;
         if (info) info.innerText = "Location unavailable";
