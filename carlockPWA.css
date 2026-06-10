@@ -301,3 +301,17 @@ button:active {
     color: #cbd7e6;
     font-size: 0.88rem;
 }
+
+.logout-mini {
+    margin-top: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid #444;
+}
+
+.logout-mini:hover {
+    background: rgba(255,255,255,0.14);
+}

@@ -41,6 +41,7 @@
         <div><span id="netStatus" class="dot"></span>Net</div>
         <div><span id="dataStatus" class="dot"></span>Data</div>
       </div>
+      <button class="logout-mini" onclick="logout()">Logout</button>
     </div>
   </div>
 </header>
@@ -55,8 +56,8 @@
     <button onclick="sendCmd('flashLights')">💡<br>Flash Lights</button>
     <button onclick="sendCmd('stopLights')">🚫💡<br>Stop Lights</button>
     <button onclick="sendCmd('remoteStart')">🚗<br>Remote Start</button>
+    <button onclick="sendCmd('remoteStartOff')">🛑<br>Remote Stop</button>
     <button onclick="getLocation()">📍<br>Get Location</button>
-    <button onclick="logout()">🚪<br>Logout</button>
   </div>
 
   <div id="mapBox">

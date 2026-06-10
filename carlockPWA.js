@@ -9,6 +9,8 @@ let statusFetchInFlight = false;
 let appVisible = false;
 let locationBusy = false;
 let locationCooldownUntil = 0;
+let globalCommandBusy = false;
+let globalCommandCooldownUntil = 0;
 
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
@@ -123,21 +125,45 @@ async function sendCmd(action) {
     const token = localStorage.getItem("token");
     if (!token) return window.location.href = "index.html";
 
-    if (pending[action]) return;
+    const now = Date.now();
+    if (globalCommandBusy || now < globalCommandCooldownUntil || pending[action]) {
+        const msg = document.getElementById("engineMessageText");
+        if (msg) msg.innerText = "Command busy...";
+        return;
+    }
+
+    globalCommandBusy = true;
+    globalCommandCooldownUntil = now + 3000;
     pending[action] = true;
 
     try {
-        await fetch(`${API_BASE}/api/${action}`, {
+        const res = await fetch(`${API_BASE}/api/${action}`, {
             method: "POST",
             headers: { "Authorization": "Bearer " + token }
         });
 
-        setTimeout(updateStatus, 400);
-        setTimeout(updateStatus, 1500);
+        let data = {};
+        try { data = await res.json(); } catch (_) {}
+
+        if (!res.ok) {
+            console.error("Command failed", action, data);
+            const msg = document.getElementById("engineMessageText");
+            if (msg) msg.innerText = data.message || "Command failed";
+        } else {
+            const msg = document.getElementById("engineMessageText");
+            if (msg) msg.innerText = data.cmdCode ? `${data.cmdCode} queued` : "Command queued";
+        }
+
+        setTimeout(updateStatus, 500);
+        setTimeout(updateStatus, 1800);
+        setTimeout(updateStatus, 3500);
     } catch (err) {
         console.error(err);
     } finally {
         pending[action] = false;
+        setTimeout(() => {
+            globalCommandBusy = false;
+        }, 3000);
     }
 }
 
@@ -178,14 +204,15 @@ async function updateStatus() {
 
 function updateLTE(rssi) {
     const rssiEl = document.getElementById("rssiText");
-    if (rssiEl) rssiEl.innerText = rssi > 0 ? `RSSI: ${rssi}` : "RSSI: --";
+    const staleOrUnknown = !rssi || rssi >= 99;
+    if (rssiEl) rssiEl.innerText = staleOrUnknown ? "RSSI: --" : `RSSI: ${rssi}`;
 
     let bars = 0;
-    if (rssi >= 25) bars = 5;
-    else if (rssi >= 20) bars = 4;
-    else if (rssi >= 15) bars = 3;
-    else if (rssi >= 10) bars = 2;
-    else if (rssi >= 2) bars = 1;
+    if (!staleOrUnknown && rssi >= 25) bars = 5;
+    else if (!staleOrUnknown && rssi >= 20) bars = 4;
+    else if (!staleOrUnknown && rssi >= 15) bars = 3;
+    else if (!staleOrUnknown && rssi >= 10) bars = 2;
+    else if (!staleOrUnknown && rssi >= 2) bars = 1;
 
     const barEls = document.querySelectorAll(".bar");
     barEls.forEach((b, i) => {
@@ -360,8 +387,10 @@ async function getLocation() {
         if (map) map.src = "fallback.png";
     } finally {
         locationBusy = false;
-        setTimeout(updateStatus, 1500);
-        setTimeout(updateStatus, 5000);
+        setTimeout(updateStatus, 1000);
+        setTimeout(updateStatus, 3000);
+        setTimeout(updateStatus, 6000);
+        setTimeout(updateStatus, 10000);
     }
 }
 
