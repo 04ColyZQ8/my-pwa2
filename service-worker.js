@@ -1,4 +1,4 @@
-const CACHE_NAME = "jamiestar-v19-no-stale-cache";
+const CACHE_NAME = "jamiestar-v21-gps-rpm-errors";
 
 self.addEventListener("install", event => {
     self.skipWaiting();

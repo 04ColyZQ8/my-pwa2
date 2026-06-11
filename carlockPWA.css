@@ -315,3 +315,15 @@ button:active {
 .logout-mini:hover {
     background: rgba(255,255,255,0.14);
 }
+
+.api-error {
+    margin: 8px 12px 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255, 70, 70, 0.16);
+    border: 1px solid rgba(255, 70, 70, 0.45);
+    color: #ffb1b1;
+    font-size: 0.78rem;
+    text-align: left;
+    word-break: break-word;
+}

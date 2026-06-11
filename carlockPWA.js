@@ -1,5 +1,5 @@
 const API_BASE = "https://fnjal2wmsd.execute-api.us-east-1.amazonaws.com"; // same-origin API Gateway or CloudFront /api/* route
-const STATUS_POLL_MS = 2000;
+const STATUS_POLL_MS = 10000;
 const APP_HEARTBEAT_MS = 15000;
 
 const pending = {};
@@ -11,6 +11,59 @@ let locationBusy = false;
 let locationCooldownUntil = 0;
 let globalCommandBusy = false;
 let globalCommandCooldownUntil = 0;
+
+function showApiError(message) {
+    const box = document.getElementById("apiErrorBox");
+    const text = String(message || "API error");
+    console.error("PWA API:", text);
+    if (box) {
+        box.innerText = text;
+        box.style.display = "block";
+    }
+}
+
+function clearApiError() {
+    const box = document.getElementById("apiErrorBox");
+    if (box) {
+        box.innerText = "";
+        box.style.display = "none";
+    }
+}
+
+async function apiFetch(url, options = {}, quiet = false) {
+    const token = localStorage.getItem("token");
+    const headers = Object.assign({}, options.headers || {});
+    if (token && !headers.Authorization && !headers.authorization) {
+        headers.Authorization = "Bearer " + token;
+    }
+
+    const res = await fetch(url, Object.assign({}, options, { headers }));
+    let data = null;
+    const text = await res.text();
+    if (text) {
+        try { data = JSON.parse(text); }
+        catch (_) { data = { message: text }; }
+    } else {
+        data = {};
+    }
+
+    if (!res.ok) {
+        const msg = (data && (data.message || data.error)) || `HTTP ${res.status}`;
+        if (!quiet) showApiError(msg);
+        if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem("token");
+            setTimeout(() => { window.location.href = "index.html"; }, 1200);
+        }
+        const err = new Error(msg);
+        err.status = res.status;
+        err.data = data;
+        throw err;
+    }
+
+    clearApiError();
+    return data || {};
+}
+
 
 window.addEventListener('load', async () => {
     const token = localStorage.getItem("token");
@@ -107,15 +160,12 @@ async function notifyAppState(open, useBeacon = false) {
     }
 
     try {
-        await fetch(url, {
+        await apiFetch(url, {
             method: "POST",
-            headers: {
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body,
             keepalive: true
-        });
+        }, true);
     } catch (err) {
         console.error("App state update failed", err);
     }
@@ -137,28 +187,20 @@ async function sendCmd(action) {
     pending[action] = true;
 
     try {
-        const res = await fetch(`${API_BASE}/api/${action}`, {
-            method: "POST",
-            headers: { "Authorization": "Bearer " + token }
+        const data = await apiFetch(`${API_BASE}/api/${action}`, {
+            method: "POST"
         });
 
-        let data = {};
-        try { data = await res.json(); } catch (_) {}
-
-        if (!res.ok) {
-            console.error("Command failed", action, data);
-            const msg = document.getElementById("engineMessageText");
-            if (msg) msg.innerText = data.message || "Command failed";
-        } else {
-            const msg = document.getElementById("engineMessageText");
-            if (msg) msg.innerText = data.cmdCode ? `${data.cmdCode} queued` : "Command queued";
-        }
+        const msg = document.getElementById("engineMessageText");
+        if (msg) msg.innerText = data.cmdCode ? `${data.cmdCode} queued` : "Command queued";
 
         setTimeout(updateStatus, 500);
         setTimeout(updateStatus, 1800);
         setTimeout(updateStatus, 3500);
     } catch (err) {
         console.error(err);
+        const msg = document.getElementById("engineMessageText");
+        if (msg) msg.innerText = err.message || "Command failed";
     } finally {
         pending[action] = false;
         setTimeout(() => {
@@ -174,16 +216,9 @@ async function updateStatus() {
     statusFetchInFlight = true;
 
     try {
-        const res = await fetch(`${API_BASE}/api/status`, {
-            headers: { "Authorization": "Bearer " + token },
+        const data = await apiFetch(`${API_BASE}/api/status`, {
             cache: "no-store"
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-            console.error("Status fetch failed:", data);
-            return;
-        }
+        }, false);
 
         updateLTE(Number(data.rssi || 0));
         updateIndicator("netStatus", Number(data.net || 0));
@@ -197,6 +232,7 @@ async function updateStatus() {
         updateGpsStatus(data);
     } catch (e) {
         console.error("Status error", e);
+        showApiError(e.message || "Status error");
     } finally {
         statusFetchInFlight = false;
     }
@@ -357,12 +393,9 @@ async function getLocation() {
     if (info) info.innerText = "Location request sent. Waiting for vehicle GPS...";
 
     try {
-        const res = await fetch(`${API_BASE}/api/getCarLocation`, {
-            headers: { "Authorization": "Bearer " + token },
+        const data = await apiFetch(`${API_BASE}/api/getCarLocation`, {
             cache: "no-store"
         });
-
-        const data = await res.json();
 
         if (data.mapUrl) {
             localStorage.setItem("lastMapUrl", data.mapUrl);
@@ -383,7 +416,8 @@ async function getLocation() {
         }
     } catch (err) {
         console.error("Failed to request car location:", err);
-        if (info) info.innerText = "Location request failed";
+        showApiError(err.message || "Location request failed");
+        if (info) info.innerText = err.message || "Location request failed";
         if (map) map.src = "fallback.png";
     } finally {
         locationBusy = false;
